@@ -23,11 +23,10 @@ class DockerCompose:
         docker_compose['services']['mc']['tty'] = True
 
         docker_compose['services']['mc']['environment'] = [f"TYPE={new_type or "FORGE"}"]
-        docker_compose['services']['mc']['environment'] += [f"MINECRAFT_VERSION={new_minecraftVersion or "LATEST"}"]
+        docker_compose['services']['mc']['environment'] += [f"VERSION={new_minecraftVersion or "LATEST"}"]
         docker_compose['services']['mc']['environment'] += [f"FORGE_VERSION={new_forgeVersion or "LATEST"}"]
         docker_compose['services']['mc']['environment'] += ["CF_API_KEY=${CF_API_KEY}"] # Make sure you have a .env file with the CF_API_KEY variable
-        
-
+        docker_compose['services']['mc']['environment'] += ["EULA=TRUE"]
         mods_list = mods or []
         if (mods_list):
             docker_compose['services']['mc']['environment'] += [f"CURSEFORGE_FILES={" ".join(mods_list)}"]
