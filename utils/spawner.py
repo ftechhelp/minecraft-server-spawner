@@ -2,6 +2,7 @@ import yaml
 from python_on_whales import docker
 import uuid
 import os
+import shutil
 
 class Spawner:
     
@@ -25,9 +26,7 @@ class Spawner:
         if 'mc' not in docker_compose['services']:
             docker_compose['services']['mc'] = {}
 
-        container_name = f'{spawn_name}-{new_port or 25565}-{new_minecraftVersion or "LATEST"}-{new_forgeVersion or "LATEST"}-{new_type or "FORGE"}'
-
-        docker_compose['services']['mc']['container_name'] = container_name
+        docker_compose['services']['mc']['container_name'] = spawn_name
         docker_compose['services']['mc']['ports'] = [f"{new_port or 25565}:25565"]
         docker_compose['services']['mc']['volumes'] = [f"{new_volume or f"./data"}:/data"]
         docker_compose['services']['mc']['image'] = "itzg/minecraft-server"
@@ -60,5 +59,20 @@ class Spawner:
         os.chdir(spawn_directory)
         docker.compose.up(detach=True, force_recreate=True, recreate=True, attach_dependencies=False, build=True)
 
-dc = Spawner('docker-compose.yml')
-dc.create_or_modify(name="268f1896-dcd3-44c9-9864-e6c3bdc63728", new_minecraftVersion="1.18.2", mods=['https://www.curseforge.com/minecraft/mc-mods/jei'], new_port=400, server_properties=['LEVEL_NAME=Vince Server', 'VIEW_DISTANCE=10', 'DIFFICULTY=normal'])
+    def purge_spawn(self, name: str):
+
+        os.chdir(f"./spawns/{name}")
+
+        docker.compose.down(remove_images="all", volumes=True, remove_orphans=True)
+
+        spawn_directory = f"../{name}"
+
+        if os.path.exists(spawn_directory):
+            shutil.rmtree(spawn_directory)
+            print("spawn directory purged.")
+        else:
+            print("No such spawn exists.")
+
+#dc = Spawner('docker-compose.yml')
+#dc.purge_spawn("vince")
+#dc.create_or_modify_spawn(name="vince", new_minecraftVersion="1.18.2", mods=['https://www.curseforge.com/minecraft/mc-mods/jei'], new_port=400, server_properties=['LEVEL_NAME=Vince Server', 'VIEW_DISTANCE=10', 'DIFFICULTY=normal'])
