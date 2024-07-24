@@ -1,5 +1,8 @@
-from utils.spawner import Spawner
+from bottle import route, run, template
 
-spawner = Spawner()
-spawner.create_or_modify_spawn(name="test", new_port=22222, new_minecraftVersion="1.19", server_properties=["DIFFICULTY=HARD", "MAX_PLAYERS=10", "MAX_WORLD_SIZE=10"])
-spawner.purge_spawn("test")
+@route('/')
+def index():
+    return template('./templates/index')
+
+
+run(host='0.0.0.0', port=8888, reloader=True, debug=True)
