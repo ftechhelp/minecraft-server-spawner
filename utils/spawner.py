@@ -72,7 +72,3 @@ class Spawner:
             print("spawn directory purged.")
         else:
             print("No such spawn exists.")
-
-#dc = Spawner('docker-compose.yml')
-#dc.purge_spawn("vince")
-#dc.create_or_modify_spawn(name="vince", new_minecraftVersion="1.18.2", mods=['https://www.curseforge.com/minecraft/mc-mods/jei'], new_port=400, server_properties=['LEVEL_NAME=Vince Server', 'VIEW_DISTANCE=10', 'DIFFICULTY=normal'])
