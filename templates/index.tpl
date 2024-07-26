@@ -95,7 +95,7 @@
             </div>
         </nav>
 
-        <div class="field mt-3">
+        <div class="field m-3">
             <div class="columns">
                 <div class="control column">
                     <input class="input is-link" type="text" placeholder="Unique Name (Random UUID)">
@@ -104,22 +104,43 @@
                     <input class="input is-link" type="text" placeholder="Port (25565)">
                 </div>
                 <div class="control column">
-                    <div class="select">
+                    <div class="select is-fullwidth">
                         <select>
                             <option>FORGE</option>
                             <option>VANILLA</option>
                         </select>
                     </div>
                 </div>
+                <div class="control column">
+                    <input class="input is-link" type="text" placeholder="Minecraft Version (LATEST)">
+                </div>
+                <div class="control column">
+                    <input class="input is-link" type="text" placeholder="Forge Version (LATEST)">
+                </div>
+                <p class="control column">
+                    <button class="button is-link is-fullwidth">
+                        Spawn
+                    </button>
+                </p>
             </div>
         </div>
 
-        <aside class="menu">
-            <p class="menu-label">Spawns</p>
-            <ul class="menu-list">
-                <li><a>Main-Server</a></li>
-                <li><a>Test-Server</a></li>
-            </ul>
-        </aside>
+        <div class="columns">
+            <div class="column is-3">
+                <aside class="menu m-3">
+                    <p class="menu-label">Spawns</p>
+                    <ul class="menu-list">
+                        <li><a>Main-Server</a></li>
+                        <li><a>Test-Server</a></li>
+                    </ul>
+                </aside>
+            </div>
+            <div class="column is-6">
+            
+            </div>
+            <div class="column is-3">
+            
+            </div>
+        </div>
     </body>
 </html>
