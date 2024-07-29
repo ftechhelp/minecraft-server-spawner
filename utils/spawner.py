@@ -1,13 +1,15 @@
 import uuid
 from models.spawn import Spawn
+import yaml
+import os
 
 class Spawner:
     
     def __init__(self):
-        self.spawns: list = []
+        self.spawns: dict = {}
 
     def create_or_modify_spawn(self, name: str = str(uuid.uuid4()), new_port: int = 25565, new_volume: str = "./data", new_type: str = "FORGE", new_minecraftVersion: str = "LATEST", new_forgeVersion: str = "LATEST", mods: list = [], server_properties: list = []) -> None:
-        spawn = Spawn(name, new_port, new_volume, new_type, new_minecraftVersion, new_forgeVersion, mods, server_properties)
+        spawn = Spawn(name or str(uuid.uuid4()), new_port or 25565, new_volume or "./data", new_type or "FORGE", new_minecraftVersion or "LATEST", new_forgeVersion or "LATEST", mods or [], server_properties or [])
         docker_compose = spawn.get_docker_compose_contents()
 
         if 'services' not in docker_compose:
@@ -35,17 +37,46 @@ class Spawner:
             docker_compose['services']['mc']['environment'] += [f"{property}"]
         
         if (spawn.mods):
-            docker_compose['services']['mc']['environment'] += [f"CURSEFORGE_FILES={" ".join(spawn.mods)}"]
+            docker_compose['services']['mc']['environment'] += [f"CURSEFORGE_FILES={" ".join(spawn.mods or [])}"]
 
         spawn.set_docker_compose_contents(docker_compose)
         print("Docker Compose file updated successfully.")
 
         spawn.up()
-        self.spawns.append(spawn)
+        self.spawns[spawn.name] = spawn
 
     def purge_spawn(self, name: str):
         for spawn in self.spawns:
             if spawn.name == name:
                 spawn.purge()
-                self.spawns.remove(spawn)
+                del self.spawns[spawn.name]
                 break
+    
+    def loadSpawns(self):
+        spawn_folder = "./spawns"
+        spawn_names = os.listdir(spawn_folder)
+
+        for name in spawn_names:
+            spawn_path = os.path.join(spawn_folder, name)
+            if os.path.isdir(spawn_path):
+                docker_file = os.path.join(spawn_path, "docker-compose.yml")
+                if os.path.isfile(docker_file):
+                    with open(docker_file, "r") as f:
+                        docker_compose = yaml.safe_load(f)
+                        port = docker_compose['services']['mc']['ports'][0].split(":")[0]
+                        volume = docker_compose['services']['mc']['volumes'][0].split(":")[0]
+                        type = docker_compose['services']['mc']['environment'][0].split("=")[1]
+                        minecraft_version = docker_compose['services']['mc']['environment'][1].split("=")[1]
+                        forge_version = docker_compose['services']['mc']['environment'][2].split("=")[1]
+                        mods = docker_compose['services']['mc']['environment'][-1].split("=")[1].split(" ")
+                        server_properties = []
+                        for env in docker_compose['services']['mc']['environment'][3:-1]:
+                            server_properties.append(env)
+                        
+                        spawn = Spawn(name, port, volume, type, minecraft_version, forge_version, mods, server_properties)
+                        self.spawns[spawn.name] = spawn
+                        print(f"Spawn '{name}' loaded successfully.")
+                else:
+                    print(f"No docker-compose.yml file found in '{spawn_path}'. Skipping spawn.")
+            else:
+                print(f"'{spawn_path}' is not a directory. Skipping spawn.")
