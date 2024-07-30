@@ -1,6 +1,6 @@
 import os
 import yaml
-from python_on_whales import docker
+from python_on_whales import docker, Container
 import shutil
 
 class Spawn:
@@ -17,6 +17,11 @@ class Spawn:
         self.mods: list = mods
         self.server_properties: list = server_properties
         self.docker_compose_file: str = f"{self.directory}/docker-compose.yml"
+
+        try:
+            self.container: Container = docker.container.inspect(self.name)
+        except:
+            self.container = None
 
         self.__create_directory()
 
@@ -35,6 +40,7 @@ class Spawn:
         os.chdir(self.directory)
         docker.compose.up(detach=True, force_recreate=True, recreate=True, attach_dependencies=False, build=True)
         print(f"Spawn {self.name} is up.")
+        self.container = docker.inspect(self.name)
         os.chdir("../..")
 
     def purge(self) -> None:
@@ -48,6 +54,13 @@ class Spawn:
             print(f"Spawn {self.name} directory purged.")
         else:
             print(f"No such spawn directory exists for {self.name}.")
+
+    def get_status(self) -> str:
+        if self.container == None:
+            return "N/A"
+        
+        status = self.container.state.status
+        return status
 
 
     def __create_directory(self) -> None:
