@@ -5,7 +5,8 @@
     {
         $('#spawnButton').click(() => 
         {
-            $('#loadingModal').toggleClass('is-active');
+            $('#actionModalText').text('Server is spawning. Please Wait...');
+            $('#actionModal').toggleClass('is-active');
         });
     });
 </script>
@@ -59,18 +60,6 @@
     <div class="column is-3">
     
     </div>
-</div>
-
-<!--Loading Modal-->
-<div id="loadingModal" class="modal">
-    <div class="modal-background"></div>
-    <div class="modal-content">
-        <div class="box">
-            <p>Server is spawning. Please Wait...</p>
-        </div>
-    </div>
-
-    <button class="modal-close is-large" aria-label="close"></button>
 </div>
 
 %include('./templates/footer.tpl')
