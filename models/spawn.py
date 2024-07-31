@@ -18,11 +18,7 @@ class Spawn:
         self.server_properties: list = server_properties
         self.docker_compose_file: str = f"{self.directory}/docker-compose.yml"
 
-        try:
-            self.container: Container = docker.container.inspect(self.name)
-        except:
-            self.container = None
-
+        self.__updateContainerInformation()
         self.__create_directory()
 
 
@@ -40,7 +36,19 @@ class Spawn:
         os.chdir(self.directory)
         docker.compose.up(detach=True, force_recreate=True, recreate=True, attach_dependencies=False, build=True)
         print(f"Spawn {self.name} is up.")
-        self.container = docker.inspect(self.name)
+        self.__updateContainerInformation()
+        os.chdir("../..")
+
+    def stop(self) -> None:
+        os.chdir(self.directory)
+        docker.compose.stop()
+        print(f"Spawn {self.name} is stopped.")
+        os.chdir("../..")
+
+    def start(self) -> None:
+        os.chdir(self.directory)
+        docker.compose.start()
+        print(f"Spawn {self.name} is started.")
         os.chdir("../..")
 
     def purge(self) -> None:
@@ -61,8 +69,25 @@ class Spawn:
         
         status = self.container.state.status
         return status
+    
+    def refreshContainerInformation(self) -> None:
+        self.__updateContainerInformation()
 
 
     def __create_directory(self) -> None:
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
+
+    def __updateContainerInformation(self) -> None:
+        try:
+            self.container: Container = docker.container.inspect(self.name)
+        except:
+            self.container = None
+        
+        self.__updateLogs()
+
+    def __updateLogs(self) -> None:
+        try:
+            self.logs = self.container.logs(tail="20", timestamps=True)
+        except:
+            self.logs = "No logs available."

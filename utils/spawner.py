@@ -44,15 +44,9 @@ class Spawner:
 
         spawn.up()
         self.spawns[spawn.name] = spawn
-
-    def purge_spawn(self, name: str):
-        for spawn in self.spawns:
-            if spawn.name == name:
-                spawn.purge()
-                del self.spawns[spawn.name]
-                break
     
     def loadSpawns(self):
+        self.spawns = {}
         spawn_folder = "./spawns"
         spawn_names = os.listdir(spawn_folder)
 
