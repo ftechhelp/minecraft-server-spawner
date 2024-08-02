@@ -23,7 +23,7 @@ def spawn():
     forge_version = request.POST.forge_version.strip() or None
 
     spawner.create_or_modify_spawn(name=name, new_port=port, new_type=type, new_minecraftVersion=minecraft_version, new_forgeVersion=forge_version)
-    return template('./templates/index', spawns=spawner.spawns)
+    redirect("/")
 
 @get('/spawn/<name>')
 def view_spawn(name):
