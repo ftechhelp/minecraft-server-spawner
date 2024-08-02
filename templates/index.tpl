@@ -49,7 +49,27 @@
             <p class="menu-label">Spawns</p>
             <ul class="menu-list">
                 %for spawn in spawns.values():
-                <li><a href="/spawn/{{spawn.name}}">{{spawn.name}}</a></li>
+                    %if spawn.get_status() == "running":
+                    <li> 
+                        <a class="columns" href="/spawn/{{spawn.name}}">
+                            <span class="pr-2">{{spawn.name}}</span> <p class="has-text-success">({{spawn.get_status()}})</p>
+                        </a>
+                    </li>
+                    %elif spawn.get_status() in ["created", "restarting", "removing", "paused", "exited"]:
+                    <li>
+                        <a class="columns" href="/spawn/{{spawn.name}}">
+                            <span class="pr-2">{{spawn.name}}</span>
+                            <p class="has-text-warning">({{spawn.get_status()}})</p>
+                        </a>
+                    </li>
+                    %else:
+                    <li>
+                        <a class="columns" href="/spawn/{{spawn.name}}">
+                            <span class="pr-2">{{spawn.name}}</span>
+                            <p class="has-text-danger">({{spawn.get_status()}})</p>
+                        </a>
+                    </li>
+                    %end
                 %end
             </ul>
         </aside>

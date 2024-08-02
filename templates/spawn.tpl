@@ -30,6 +30,11 @@
         {
             $('#refreshLogButton').toggleClass('is-loading');
         });
+
+        $('#synchModsButton').click(() => 
+        {
+            $('#synchModsButton').toggleClass('is-loading');
+        });
     });
 </script>
 
@@ -109,6 +114,18 @@
                 </form>
             </footer>
         </div>
+        <form action="/mods" method="post">
+            <div class="field">
+                <label class="label">Mods (one link per line) <button id="synchModsButton">Synch</button></label>
+                <div class="control">
+                    <textarea name="mods" class="textarea" placeholder="No mods here">
+                        %for mod in spawn.mods:
+                            {{mod}}
+                        %end
+                    </textarea>
+                </div>
+            </div>
+        </form>
     </div>
     <div class="column is-8">
         <article class="message">
