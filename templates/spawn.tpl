@@ -31,9 +31,10 @@
             $('#refreshLogButton').toggleClass('is-loading');
         });
 
-        $('#synchModsButton').click(() => 
+        $('#modsSyncButton').click(() => 
         {
-            $('#synchModsButton').toggleClass('is-loading');
+            $('#actionModalText').text('Mods are synching server is restarting. Please Wait...');
+            $('#actionModal').toggleClass('is-active');
         });
     });
 </script>
@@ -95,6 +96,38 @@
                                     <h4 class="subtitle is-4">{{spawn.forge_version}}</h4>
                                 </td>
                             </tr>
+                            <tr>
+                                <td>
+                                    <h4 class="subtitle is-4">Loaded Mods:</h4>
+                                </td>
+                                <td>
+                                    <h4 class="subtitle is-4">{{len(spawn.mods)}}</h4>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <h4 class="subtitle is-4">Pending Mods to Remove:</h4>
+                                </td>
+                                <td>
+                                    %if len(spawn.unloadedRemovedMods) > 0:
+                                        <h4 class="subtitle is-4 has-text-warning">{{len(spawn.unloadedRemovedMods)}}</h4>
+                                    %else:
+                                        <h4 class="subtitle is-4">{{len(spawn.unloadedRemovedMods)}}</h4>
+                                    %end
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <h4 class="subtitle is-4">Pending Mods to Add:</h4>
+                                </td>
+                                <td>
+                                    %if len(spawn.unloadedAddedMods) > 0:
+                                        <h4 class="subtitle is-4 has-text-warning">{{len(spawn.unloadedAddedMods)}}</h4>
+                                    %else:
+                                        <h4 class="subtitle is-4">{{len(spawn.unloadedAddedMods)}}</h4>
+                                    %end
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </p>
@@ -114,15 +147,39 @@
                 </form>
             </footer>
         </div>
-        <form action="/mods" method="post">
-            <div class="field">
-                <label class="label">Mods (one link per line) <button id="synchModsButton">Synch</button></label>
+        <label class="label">Mods</label>
+        %for mod in spawn.virtualMods:
+        <form action="/spawn/{{spawn.name}}/mods/delete" method="post">
+            <div class="field has-addons p-1">
+                <div class="control is-expanded">
+                    <input class="input" type="text" name="mod" placeholder="Link to mod" value="{{mod}}" readonly>
+                </div>
                 <div class="control">
-                    <textarea name="mods" class="textarea" placeholder="No mods here">
-                        %for mod in spawn.mods:
-                            {{mod}}
-                        %end
-                    </textarea>
+                    <button class="button is-danger">
+                        Remove
+                    </button>
+                </div>
+            </div>
+        </form>
+        %end
+        <form action="/spawn/{{spawn.name}}/mods/add" method="post">
+            <div class="field has-addons p-1">
+                <div class="control is-expanded">
+                    <input class="input" type="text" name="mod" placeholder="Link to mod" value="">
+                </div>
+                <div class="control">
+                    <button class="button is-info">
+                        Add
+                    </button>
+                </div>
+            </div>
+        </form>
+        <form action="/spawn/{{spawn.name}}/mods/sync" method="post">
+            <div class="field has-addons p-1">
+                <div class="control is-expanded">
+                    <button class="button is-primary" id="modsSyncButton">
+                        Sync
+                    </button>
                 </div>
             </div>
         </form>
@@ -130,10 +187,13 @@
     <div class="column is-8">
         <article class="message">
             <div class="message-header">
-                <p class="subtitle is-4">Log</p>
-                <form action="/spawn/{{spawn.name}}/refresh" method="post">
-                    <button id="refreshLogButton" class="button is-link">Refresh</button>
-                </form>
+                <p class="subtitle is-4">Logs</p>
+                <div class="is-4 is-flex is-align-items-flex-end">
+                    <form action="/spawn/{{spawn.name}}/refresh" method="post">
+                        <button id="refreshLogButton" class="button is-link">Refresh</button>
+                    </form>
+                    <a href="/spawn/{{spawn.name}}/logs" class="button is-ghost ml-2">Full Logs</a>
+                </div>
             </div>
             <div class="message-body">
                 <pre>{{spawn.logs}}</pre>
