@@ -59,6 +59,32 @@ def refresh_spawn(name):
     spawn.refreshContainerInformation()
     redirect(f"/spawn/{name}")
 
+@get('/spawn/<name>/logs')
+def download_logs(name):
+    spawn = spawner.spawns[name]
+    return template('./templates/spawn_logs', logs=spawn.get_logs())
+
+@post('/spawn/<name>/mods/delete')
+def delete_mod(name):
+    spawn = spawner.spawns[name]
+    mod = request.POST.mod.strip()
+    spawn.removeMod(mod)
+    redirect(f"/spawn/{name}")
+
+@post('/spawn/<name>/mods/add')
+def add_mod(name):
+    spawn = spawner.spawns[name]
+    mod = request.POST.mod.strip()
+    spawn.addMod(mod)
+    redirect(f"/spawn/{name}")
+
+@post('/spawn/<name>/mods/sync')
+def sync_mods(name):
+    spawn = spawner.spawns[name]
+    spawn.syncMods()
+    spawner.create_or_modify_spawn(name=spawn.name, new_port=spawn.port, new_type=spawn.type, new_minecraftVersion=spawn.minecraft_version, new_forgeVersion=spawn.forge_version, mods=spawn.mods)
+    redirect(f"/spawn/{name}")
+
 
 
 

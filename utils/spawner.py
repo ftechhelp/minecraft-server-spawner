@@ -62,9 +62,14 @@ class Spawner:
                         type = docker_compose['services']['mc']['environment'][0].split("=")[1]
                         minecraft_version = docker_compose['services']['mc']['environment'][1].split("=")[1]
                         forge_version = docker_compose['services']['mc']['environment'][2].split("=")[1]
+
                         mods = []
-                        if 'CURSEFORGE_FILES' in docker_compose['services']['mc']['environment']:
-                            mods = docker_compose['services']['mc']['environment'][4].split(" ")
+                        if 'CURSEFORGE_FILES' in [env.split('=')[0] for env in docker_compose['services']['mc']['environment']]:
+                            for env in docker_compose['services']['mc']['environment']:
+                                if env.startswith('CURSEFORGE_FILES'):
+                                    mods = env.split('=')[1].split(' ')
+                                    break
+                        
                         server_properties = []
                         for env in docker_compose['services']['mc']['environment'][3:-1]:
                             server_properties.append(env)

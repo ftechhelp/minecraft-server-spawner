@@ -15,6 +15,9 @@ class Spawn:
         self.minecraft_version: str = minecraft_version
         self.forge_version: str = forge_version
         self.mods: list = mods
+        self.virtualMods: list = mods[:]
+        self.unloadedRemovedMods: list = []
+        self.unloadedAddedMods: list = []
         self.server_properties: list = server_properties
         self.docker_compose_file: str = f"{self.directory}/docker-compose.yml"
 
@@ -70,9 +73,28 @@ class Spawn:
         status = self.container.state.status
         return status
     
+    def get_logs(self) -> str:
+        self.__updateLogs()
+        return self.logs
+    
     def refreshContainerInformation(self) -> None:
         self.__updateContainerInformation()
 
+    def removeMod(self, mod: str) -> None:
+        self.unloadedRemovedMods.append(mod)
+        self.unloadedAddedMods = [m for m in self.unloadedAddedMods if m != mod]
+        self.virtualMods = [m for m in self.virtualMods if m != mod]
+        print(self.virtualMods)
+
+    def addMod(self, mod: str) -> None:
+        self.unloadedAddedMods.append(mod)
+        self.unloadedRemovedMods = [m for m in self.unloadedRemovedMods if m != mod]
+        self.virtualMods.append(mod)
+
+    def syncMods(self) -> None:
+        self.mods = self.virtualMods[:]
+        self.unloadedRemovedMods = []
+        self.unloadedAddedMods = []
 
     def __create_directory(self) -> None:
         if not os.path.exists(self.directory):
@@ -84,10 +106,10 @@ class Spawn:
         except:
             self.container = None
         
-        self.__updateLogs()
+        self.__updateLogs(20)
 
-    def __updateLogs(self) -> None:
+    def __updateLogs(self, tail: int = None) -> None:
         try:
-            self.logs = self.container.logs(tail="20", timestamps=True)
+            self.logs = self.container.logs(tail=tail, timestamps=True)
         except:
             self.logs = "No logs available."
