@@ -6,7 +6,7 @@ import shutil
 class Spawn:
 
 
-    def __init__(self, name: str, port: int, volume: str, type: str, minecraft_version: str, forge_version: str, mods: list, server_properties: list) -> None:
+    def __init__(self, name: str, port: int, volume: str, type: str, minecraft_version: str, forge_version: str, mods: list, server_properties: dict) -> None:
         self.name: str = name
         self.directory: str = f"./spawns/{self.name}"
         self.volume: str = volume
