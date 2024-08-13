@@ -32,9 +32,6 @@ class Spawner:
         docker_compose['services']['mc']['environment'] += ["REMOVE_OLD_MODS=TRUE"]
         docker_compose['services']['mc']['environment'] += ["INIT_MEMORY=1G"]
         docker_compose['services']['mc']['environment'] += ["MAX_MEMORY=4G"]
-
-        for property in spawn.server_properties:
-            docker_compose['services']['mc']['environment'] += [f"{property}"]
         
         if (spawn.mods):
             docker_compose['services']['mc']['environment'] += [f"CURSEFORGE_FILES={" ".join(spawn.mods or [])}"]
@@ -43,6 +40,7 @@ class Spawner:
         print("Docker Compose file updated successfully.")
 
         spawn.up()
+        spawn.load_server_properties()
         self.spawns[spawn.name] = spawn
     
     def loadSpawns(self):
@@ -70,49 +68,12 @@ class Spawner:
                                     mods = env.split('=')[1].split(' ')
                                     break
                         
-                        server_properties = self.__loadServerPropertiesFromDockerCompose(docker_compose, name)
-                        
-                        spawn = Spawn(name, port, volume, type, minecraft_version, forge_version, mods, server_properties)
+                        spawn = Spawn(name, port, volume, type, minecraft_version, forge_version, mods)
+                        spawn.load_server_properties()
                         self.spawns[spawn.name] = spawn
+
                         print(f"Spawn '{name}' loaded successfully.")
                 else:
                     print(f"No docker-compose.yml file found in '{spawn_path}'. Skipping spawn.")
             else:
                 print(f"'{spawn_path}' is not a directory. Skipping spawn.")
-
-    def __loadServerPropertiesFromDockerCompose(self, docker_compose: dict, spawnName: str) -> dict:
-        server_properties = {
-            "MOTD": f"Welcome to {spawnName} the server!",
-            "DIFFICULTY": "easy",
-            "MAX_PLAYERS": 20,
-            "MAX_WORLD_SIZE": None,
-            "ALLOW_NETHER": True,
-            "ANNOUCE_PLAYER_ACHIEVEMENTS": True,
-            "ENABLE_COMMAND_BLOCK": None,
-            "FORCE_GAMEMODE": False,
-            "GENERATE_STRUCTURES": True,
-            "HARDCORE": False,
-            "SNOOPER_ENABLED": True,
-            "MAX_BUILD_HEIGHT": 256,
-            "SPAWN_ANIMALS": True,
-            "SPAWN_MONSTERS": True,
-            "SPAWN_NPCS": True,
-            "VIEW_DISTANCE": None,
-            "SEED": None,
-            "MODE": None,
-            "PVP": True,
-            "LEVEL_TYPE": "minecraft:normal",
-            "LEVEL": "world",
-            "ONLINE_MODE": True,
-            "ALLOW_FLIGHT": False,
-            "SERVER_NAME": spawnName,
-            "PLAYER_IDLE_TIMEOUT": 0
-        }
-
-        for key in server_properties:
-            if key in [env.split('=')[0] for env in docker_compose['services']['mc']['environment']]:
-                for env in docker_compose['services']['mc']['environment']:
-                    if env.startswith(key):
-                        server_properties[key] = env.split('=')[1]
-                        break
-        return server_properties

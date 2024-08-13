@@ -6,7 +6,7 @@ import shutil
 class Spawn:
 
 
-    def __init__(self, name: str, port: int, volume: str, type: str, minecraft_version: str, forge_version: str, mods: list, server_properties: dict) -> None:
+    def __init__(self, name: str, port: int, volume: str, type: str, minecraft_version: str, forge_version: str, mods: list) -> None:
         self.name: str = name
         self.directory: str = f"./spawns/{self.name}"
         self.volume: str = volume
@@ -18,7 +18,7 @@ class Spawn:
         self.virtualMods: list = mods[:]
         self.unloadedRemovedMods: list = []
         self.unloadedAddedMods: list = []
-        self.server_properties: list = server_properties
+        self.server_properties: str = ""
         self.docker_compose_file: str = f"{self.directory}/docker-compose.yml"
 
         self.__updateContainerInformation()
@@ -95,6 +95,16 @@ class Spawn:
         self.mods = self.virtualMods[:]
         self.unloadedRemovedMods = []
         self.unloadedAddedMods = []
+
+    def load_server_properties(self) -> None:
+        with open(f"{self.directory}/data/server.properties", 'r') as file:
+            self.server_properties = file.read()
+
+    def write_server_properties(self, server_properties) -> None:
+        with open(f"{self.directory}/data/server.properties", 'w') as file:
+            file.write(server_properties)
+            self.server_properties = server_properties
+            self.up()
 
     def __create_directory(self) -> None:
         if not os.path.exists(self.directory):

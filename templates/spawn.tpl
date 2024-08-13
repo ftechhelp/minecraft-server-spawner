@@ -33,7 +33,13 @@
 
         $('#modsSyncButton').click(() => 
         {
-            $('#actionModalText').text('Mods are synching server is restarting. Please Wait...');
+            $('#actionModalText').text('Mods are synching and server is restarting. Please Wait...');
+            $('#actionModal').toggleClass('is-active');
+        });
+        
+        $('#updateServerPropertiesButton').click(() => 
+        {
+            $('#actionModalText').text('Properties are updating and server is restarting. Please Wait...');
             $('#actionModal').toggleClass('is-active');
         });
     });
@@ -199,6 +205,21 @@
                 <pre>{{spawn.logs}}</pre>
             </div>
         </article>
+        <form action="/spawn/{{spawn.name}}/server_properties/save" method="post">
+            <article class="message">
+                <div class="message-header">
+                    <p class="subtitle is-4">Server Properties</p>
+                    <div class="is-4 is-flex is-align-items-flex-end">
+                        <button id="updateServerPropertiesButton" class="button is-link">Update & Restart</button>
+                    </div>
+                </div>
+                <div class="message-body">
+                    <textarea class="textarea is-info" name="server_properties" rows="20">
+                        {{spawn.server_properties}}
+                    </textarea>
+                </div>
+            </article>
+        </form>
     </div>
 </div>
 
