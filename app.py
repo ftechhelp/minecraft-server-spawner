@@ -85,6 +85,12 @@ def sync_mods(name):
     spawner.create_or_modify_spawn(name=spawn.name, new_port=spawn.port, new_type=spawn.type, new_minecraftVersion=spawn.minecraft_version, new_forgeVersion=spawn.forge_version, mods=spawn.mods)
     redirect(f"/spawn/{name}")
 
+@post('/spawn/<name>/server_properties/save')
+def save_server_properties(name):
+    spawn = spawner.spawns[name]
+    spawn.write_server_properties(request.POST.server_properties)
+    redirect(f"/spawn/{name}")
+
 
 
 
