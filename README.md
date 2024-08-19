@@ -19,7 +19,7 @@ The point of this project was to keep everything as light and simple as possible
 
 1. Clone the repository:
     ```sh
-    git clone <repository-url>
+    git clone https://github.com/ftechhelp/minecraft-server-spawner.git
     cd minecraft-server-spawner
     ```
 
@@ -47,7 +47,7 @@ The point of this project was to keep everything as light and simple as possible
     python app.py
     ```
 
-2. Access the web interface at `http://localhost:8000`.
+2. Access the web interface at `http://localhost:8888`.
 
 3. Use the web interface to manage your Minecraft server instances.
 
