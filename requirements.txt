@@ -1,0 +1,4 @@
+bottle
+python-dotenv
+pyyaml
+python-on-whales
