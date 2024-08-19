@@ -8,8 +8,8 @@ class Spawner:
     def __init__(self):
         self.spawns: dict = {}
 
-    def create_or_modify_spawn(self, name: str = str(uuid.uuid4()), new_port: int = 25565, new_volume: str = "./data", new_type: str = "FORGE", new_minecraftVersion: str = "LATEST", new_forgeVersion: str = "LATEST", mods: list = [], server_properties: dict = {}) -> None:
-        spawn = Spawn(name or str(uuid.uuid4()), new_port or 25565, new_volume or "./data", new_type or "FORGE", new_minecraftVersion or "LATEST", new_forgeVersion or "LATEST", mods or [], server_properties or {})
+    def create_or_modify_spawn(self, name: str = str(uuid.uuid4()), new_port: int = 25565, new_volume: str = "./data", new_type: str = "FORGE", new_minecraftVersion: str = "LATEST", new_forgeVersion: str = "LATEST", mods: list = []) -> None:
+        spawn = Spawn(name or str(uuid.uuid4()), new_port or 25565, new_volume or "./data", new_type or "FORGE", new_minecraftVersion or "LATEST", new_forgeVersion or "LATEST", mods or [])
         docker_compose = spawn.get_docker_compose_contents()
 
         if 'services' not in docker_compose:
