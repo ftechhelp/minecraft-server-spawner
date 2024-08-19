@@ -91,6 +91,12 @@ def save_server_properties(name):
     spawn.write_server_properties(request.POST.server_properties)
     redirect(f"/spawn/{name}")
 
+@post('/spawn/<name>/console/send')
+def send_console_command(name):
+    spawn = spawner.spawns[name]
+    spawn.send_console_command(request.POST.consoleCommand)
+    redirect(f"/spawn/{name}")
+
 
 
 

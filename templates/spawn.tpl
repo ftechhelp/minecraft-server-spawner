@@ -203,6 +203,18 @@
             </div>
             <div class="message-body">
                 <pre>{{spawn.logs}}</pre>
+                <form action="/spawn/{{spawn.name}}/console/send" method="post" class="pt-4">
+                    <div class="field has-addons">
+                        <div class="control is-expanded">
+                            <input class="input" type="text" name="consoleCommand" placeholder="Enter Console Command">
+                        </div>
+                        <div class="control">
+                            <button class="button is-link">
+                                Send
+                            </button>
+                        </div>
+                    </div>
+                </form>
             </div>
         </article>
         <form action="/spawn/{{spawn.name}}/server_properties/save" method="post">

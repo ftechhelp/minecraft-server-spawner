@@ -106,6 +106,10 @@ class Spawn:
             self.server_properties = server_properties
             self.up()
 
+    def send_console_command(self, command: str) -> None:
+        docker.execute(container=self.name, command=["rcon-cli", command])
+        self.__updateLogs(20)
+
     def __create_directory(self) -> None:
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
