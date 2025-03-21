@@ -2,3 +2,4 @@ bottle
 python-dotenv
 pyyaml
 python-on-whales
+beautifulsoup4

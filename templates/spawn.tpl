@@ -42,6 +42,21 @@
             $('#actionModalText').text('Properties are updating and server is restarting. Please Wait...');
             $('#actionModal').toggleClass('is-active');
         });
+        
+        // File input change handler
+        $('.file-input').on('change', function() 
+        {
+            const $fileNameDisplay = $('#file-name-display');
+            
+            if (this.files && this.files[0]) 
+            {
+                $fileNameDisplay.text(this.files[0].name);
+            } 
+            else 
+            {
+                $fileNameDisplay.text('No file selected');
+            }
+        });
     });
 </script>
 
@@ -168,6 +183,32 @@
             </div>
         </form>
         %end
+        <form action="/spawn/{{spawn.name}}/mods/upload" method="post" enctype="multipart/form-data">
+            <div class="field has-addons pb-3">
+                <div class="control is-expanded">
+                    <div class="file has-name is-fullwidth">
+                        <label class="file-label">
+                            <input class="file-input" type="file" name="mods" accept=".zip,application/zip,application/x-zip,application/x-zip-compressed" />
+                            <span class="file-cta">
+                                <span class="file-icon">
+                                    <i class="fas fa-upload"></i>
+                                </span>
+                                <span class="file-label"> Choose zip file </span>
+                            </span>
+                            <span class="file-name" id="file-name-display"> No file selected </span>
+                        </label>
+                    </div>
+                </div>
+                <div class="control">
+                    <button type="submit" class="button is-primary">
+                        <span class="icon">
+                            <i class="fas fa-upload"></i>
+                        </span>
+                        <span>Upload</span>
+                    </button>
+                </div>
+            </div>
+        </form>
         <form action="/spawn/{{spawn.name}}/mods/add" method="post">
             <div class="field has-addons p-1">
                 <div class="control is-expanded">
