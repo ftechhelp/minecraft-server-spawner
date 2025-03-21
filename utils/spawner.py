@@ -30,21 +30,28 @@ class Spawner:
         docker_compose['services']['mc']['environment'] += ["CF_API_KEY=${CF_API_KEY}"] # Make sure you have a .env file with the CF_API_KEY variable
         docker_compose['services']['mc']['environment'] += ["EULA=TRUE"]
         docker_compose['services']['mc']['environment'] += ["REMOVE_OLD_MODS=TRUE"]
-        docker_compose['services']['mc']['environment'] += ["INIT_MEMORY=1G"]
-        docker_compose['services']['mc']['environment'] += ["MAX_MEMORY=4G"]
+        docker_compose['services']['mc']['environment'] += ["INIT_MEMORY=2G"]
+        docker_compose['services']['mc']['environment'] += ["MAX_MEMORY=16G"]
         
         if (spawn.mods):
-            docker_compose['services']['mc']['environment'] += [f"CURSEFORGE_FILES={" ".join(spawn.mods or [])}"]
+            # Format the mods list according to CurseForge documentation
+            # Each mod should be a valid project slug, and they should be space-separated
+            # Filter out any empty strings that might be in the list
+            valid_mods = [mod for mod in spawn.mods if mod.strip()]
+            if valid_mods:
+                docker_compose['services']['mc']['environment'] += [f"CURSEFORGE_FILES={' '.join(valid_mods)}"]
 
         spawn.set_docker_compose_contents(docker_compose)
         print("Docker Compose file updated successfully.")
 
         spawn.up()
+
         try:
             spawn.load_server_properties()
         except Exception as e:
             print(f"Warning: Could not load server properties for {spawn.name}: {str(e)}")
             print("This is normal for new servers and will be resolved when the server finishes starting.")
+        
         self.spawns[spawn.name] = spawn
     
     def loadSpawns(self):

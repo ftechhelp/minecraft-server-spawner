@@ -2,6 +2,10 @@ import os
 import yaml
 from python_on_whales import docker, Container
 import shutil
+import tempfile
+import zipfile
+import os
+from bs4 import BeautifulSoup
 
 class Spawn:
 
@@ -95,6 +99,80 @@ class Spawn:
         self.mods = self.virtualMods[:]
         self.unloadedRemovedMods = []
         self.unloadedAddedMods = []
+
+    def uploadMods(self, zip_file) -> None:
+        try:
+            # Create a temporary directory to extract the zip file
+            with tempfile.TemporaryDirectory() as temp_dir:
+                # Save the uploaded file to the temp directory
+                zip_path = os.path.join(temp_dir, "modpack.zip")
+                zip_file.save(zip_path)
+                
+                # Extract the zip file
+                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                    zip_ref.extractall(temp_dir)
+                
+                # Find the modlist.html file
+                modlist_path = None
+                for root, dirs, files in os.walk(temp_dir):
+                    if "modlist.html" in files:
+                        modlist_path = os.path.join(root, "modlist.html")
+                        break
+                
+                if not modlist_path:
+                    print(f"Error: modlist.html not found in the uploaded zip file for {self.name}")
+                    return
+                
+                # Parse the HTML file to extract URLs
+                with open(modlist_path, 'r', encoding='utf-8') as file:
+                    html_content = file.read()
+                
+                # Use BeautifulSoup to parse the HTML
+                soup = BeautifulSoup(html_content, 'html.parser')
+                
+                # Find all links in the HTML
+                mod_links = []
+                for a_tag in soup.find_all('a', href=True):
+                    url = a_tag['href']
+                    # Check if it's a valid URL
+                    if url.startswith('http') and 'curseforge.com' in url:
+                        mod_links.append(url)
+                
+                # Add each mod URL
+                for mod_url in mod_links:
+                    # Extract the project slug according to CurseForge format
+                    # CurseForge URLs typically follow this pattern:
+                    # https://www.curseforge.com/minecraft/mc-mods/[project-slug]
+                    
+                    # Check if it's a CurseForge URL
+                    if 'curseforge.com/minecraft/mc-mods/' in mod_url:
+                        # Parse the URL to extract just the project slug
+                        # Remove trailing slash if present
+                        parts = mod_url.rstrip('/').split('/')
+                        
+                        # The slug should be the last part of the URL for project pages
+                        # For file pages, we need to handle differently
+                        if 'files' in parts:
+                            # This is a file page URL, get the project slug which is before 'files'
+                            try:
+                                slug_index = parts.index('mc-mods') + 1
+                                if slug_index < len(parts):
+                                    slug = parts[slug_index]
+                                    self.addMod(slug)
+                            except (ValueError, IndexError):
+                                print(f"Could not parse file URL: {mod_url}")
+                        else:
+                            # This is a project page URL, get the last part
+                            slug = parts[-1]
+                            self.addMod(slug)
+                    else:
+                        # Not a CurseForge URL or doesn't match expected pattern
+                        print(f"Skipping URL that doesn't match expected CurseForge pattern: {mod_url}")
+                
+                print(f"Successfully processed modpack for {self.name}. Added {len(mod_links)} mods.")
+                
+        except Exception as e:
+            print(f"Error processing modpack for {self.name}: {str(e)}")
 
     def load_server_properties(self) -> None:
         try:
