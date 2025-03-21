@@ -97,14 +97,27 @@ class Spawn:
         self.unloadedAddedMods = []
 
     def load_server_properties(self) -> None:
-        with open(f"{self.directory}/data/server.properties", 'r') as file:
-            self.server_properties = file.read()
+        try:
+            with open(f"{self.directory}/data/server.properties", 'r') as file:
+                self.server_properties = file.read()
+        except FileNotFoundError:
+            # File doesn't exist yet, which can happen when the container is first created
+            # Set default empty properties or wait until file is created
+            self.server_properties = ""
+            print(f"Warning: server.properties file not found for {self.name}. This is normal for new servers.")
 
     def write_server_properties(self, server_properties) -> None:
-        with open(f"{self.directory}/data/server.properties", 'w') as file:
-            file.write(server_properties)
-            self.server_properties = server_properties
-            self.up()
+        try:
+            # Make sure the data directory exists
+            os.makedirs(f"{self.directory}/data", exist_ok=True)
+            
+            with open(f"{self.directory}/data/server.properties", 'w') as file:
+                file.write(server_properties)
+                self.server_properties = server_properties
+        except Exception as e:
+            print(f"Error writing server.properties for {self.name}: {str(e)}")
+        
+        self.up()
 
     def send_console_command(self, command: str) -> None:
         docker.execute(container=self.name, command=["rcon-cli", command])
