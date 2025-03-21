@@ -40,7 +40,11 @@ class Spawner:
         print("Docker Compose file updated successfully.")
 
         spawn.up()
-        spawn.load_server_properties()
+        try:
+            spawn.load_server_properties()
+        except Exception as e:
+            print(f"Warning: Could not load server properties for {spawn.name}: {str(e)}")
+            print("This is normal for new servers and will be resolved when the server finishes starting.")
         self.spawns[spawn.name] = spawn
     
     def loadSpawns(self):
@@ -69,10 +73,13 @@ class Spawner:
                                     break
                         
                         spawn = Spawn(name, port, volume, type, minecraft_version, forge_version, mods)
-                        spawn.load_server_properties()
                         self.spawns[spawn.name] = spawn
 
-                        print(f"Spawn '{name}' loaded successfully.")
+                        try:
+                            spawn.load_server_properties()
+                            print(f"Spawn '{name}' loaded successfully.")
+                        except Exception as e:
+                            print(f"Failed to load server properties for spawn '{name}': {str(e)}")
                 else:
                     print(f"No docker-compose.yml file found in '{spawn_path}'. Skipping spawn.")
             else:
