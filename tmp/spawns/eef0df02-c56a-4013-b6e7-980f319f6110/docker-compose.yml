@@ -1,0 +1,19 @@
+services:
+  mc:
+    container_name: eef0df02-c56a-4013-b6e7-980f319f6110
+    environment:
+    - TYPE=FORGE
+    - VERSION=LATEST
+    - FORGE_VERSION=LATEST
+    - CF_API_KEY=${CF_API_KEY}
+    - EULA=TRUE
+    - REMOVE_OLD_MODS=TRUE
+    - INIT_MEMORY=2G
+    - MAX_MEMORY=16G
+    image: itzg/minecraft-server
+    ports:
+    - 25565:25565
+    stdin_open: true
+    tty: true
+    volumes:
+    - ./data:/data

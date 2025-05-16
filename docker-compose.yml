@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  minecraft-spawner:
+    build: .
+    container_name: minecraft-spawner
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - "8888:8888"  # Web interface
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./spawn:/app/spawn  # Persistent storage for Minecraft server data
+    environment:
+      - CF_API_KEY=$2a$10$5fq3KVSx1ZTXKgfgIL6RMuCLQRMtCHaV8HkYJvmprSvIGfiC8X75.  # Replace with your actual CurseForge API key
+      - PYTHONUNBUFFERED=1
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    networks:
+      - minecraft-network
+
+networks:
+  minecraft-network:
+    driver: bridge
