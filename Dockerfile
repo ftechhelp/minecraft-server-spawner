@@ -1,0 +1,34 @@
+FROM docker:dind
+
+# Install Python, pip, and other required dependencies
+RUN apk add --no-cache \
+    python3 \
+    py3-pip \
+    python3-dev \
+    gcc \
+    musl-dev \
+    libffi-dev \
+    openssl-dev \
+    && python3 -m venv /opt/venv
+
+# Make sure we use the virtualenv's pip
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Install required Python packages
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Copy the application code
+COPY . /app
+WORKDIR /app
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV DOCKER_HOST=unix:///var/run/docker.sock
+
+# Create a directory for spawn data
+RUN mkdir -p /app/spawn
+
+# Set the entrypoint to start the Docker daemon and the application
+ENTRYPOINT ["sh", "-c", "dockerd > /var/log/docker.log 2>&1 & sleep 5 && python app.py"]
