@@ -1,6 +1,6 @@
 # Implementation Plan
 
-- [ ] 1. Create input validation module
+- [x] 1. Create input validation module
   - Create `utils/validators.py` with validation functions for ports, spawn names, versions, and mods
   - Implement `validate_port()` to check port range (1-65535) and numeric validity
   - Implement `validate_spawn_name()` to prevent path traversal and invalid characters
