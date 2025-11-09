@@ -42,7 +42,7 @@
   - Return HTTP 400 with error messages for validation failures
   - _Requirements: 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 2.4, 2.5_
 
-- [ ] 6. Add error handling decorators to routes
+- [x] 6. Add error handling decorators to routes
   - Apply `@handle_spawn_not_found` decorator to all spawn-specific routes
   - Apply `@handle_docker_errors` decorator to routes that perform Docker operations
   - Apply `@handle_file_errors` decorator to routes that perform file operations
