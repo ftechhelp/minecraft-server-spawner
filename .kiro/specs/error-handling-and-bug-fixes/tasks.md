@@ -34,7 +34,7 @@
   - Handle FileNotFoundError in `load_server_properties()` and `write_server_properties()`
   - _Requirements: 3.1, 3.2, 3.3, 4.1, 4.3, 4.5, 5.1, 5.2, 5.3, 5.5, 6.1, 6.2, 6.3_
 
-- [ ] 5. Add input validation to route handlers
+- [x] 5. Add input validation to route handlers
   - Modify `app.py` to add validation to `/spawn` POST route for all form inputs
   - Validate port numbers, spawn names, and version strings before processing
   - Check for port conflicts before creating spawns
