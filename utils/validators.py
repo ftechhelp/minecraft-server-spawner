@@ -186,3 +186,51 @@ def validate_file_size(file_path: str, max_size_mb: int = 100) -> Tuple[bool, st
         
     except OSError as e:
         return False, f"Unable to check file size: {str(e)}"
+
+
+def check_disk_space(path: str = ".", min_space_gb: float = 5.0) -> Tuple[bool, str]:
+    """
+    Checks if sufficient disk space is available at the specified path.
+    
+    Args:
+        path: Path to check disk space for (default: current directory)
+        min_space_gb: Minimum required space in gigabytes (default: 5GB)
+        
+    Returns:
+        Tuple of (is_sufficient, error_message)
+        - is_sufficient: True if sufficient space is available
+        - error_message: Empty string if sufficient, error description otherwise
+    """
+    try:
+        import shutil
+        stat = shutil.disk_usage(path)
+        free_gb = stat.free / (1024 ** 3)
+        
+        if free_gb < min_space_gb:
+            return False, f"Insufficient disk space: {free_gb:.2f}GB available, {min_space_gb}GB required"
+        
+        return True, ""
+        
+    except Exception as e:
+        return False, f"Unable to check disk space: {str(e)}"
+
+
+def check_docker_available() -> Tuple[bool, str]:
+    """
+    Checks if Docker daemon is running and accessible.
+    
+    Returns:
+        Tuple of (is_available, error_message)
+        - is_available: True if Docker is available
+        - error_message: Empty string if available, error description otherwise
+    """
+    try:
+        from python_on_whales import docker
+        # Try to get Docker version as a simple check
+        docker.version()
+        return True, ""
+    except Exception as e:
+        error_msg = str(e).lower()
+        if "connection" in error_msg or "refused" in error_msg or "not found" in error_msg:
+            return False, "Docker daemon is not running or not accessible. Please start Docker and try again."
+        return False, f"Docker is not available: {str(e)}"

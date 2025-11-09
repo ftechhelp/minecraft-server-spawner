@@ -23,7 +23,7 @@ class Spawner:
 
     def create_or_modify_spawn(self, name: str = str(uuid.uuid4()), new_port: int = 25565, new_volume: str = "./data", new_type: str = "FORGE", new_minecraftVersion: str = "LATEST", new_forgeVersion: str = "LATEST", mods: list = []) -> None:
         """
-        Creates or modifies a spawn with comprehensive error handling.
+        Creates or modifies a spawn with comprehensive error handling and resource checking.
         
         Args:
             name: Spawn name
@@ -39,6 +39,20 @@ class Spawner:
             FileOperationError: If file operations fail
         """
         try:
+            # Check if Docker is available before attempting operations
+            from utils.validators import check_docker_available, check_disk_space
+            from utils.error_handlers import ResourceConstraintError
+            
+            is_available, error_msg = check_docker_available()
+            if not is_available:
+                logger.error(f"Docker not available: {error_msg}")
+                raise DockerOperationError('create_spawn', error_msg, name)
+            
+            # Check disk space before creating spawn
+            is_sufficient, error_msg = check_disk_space(min_space_gb=5.0)
+            if not is_sufficient:
+                logger.error(f"Insufficient disk space: {error_msg}")
+                raise DockerOperationError('create_spawn', error_msg, name)
             spawn = Spawn(
                 name or str(uuid.uuid4()), 
                 new_port or 25565, 

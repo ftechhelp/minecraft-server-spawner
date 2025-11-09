@@ -114,7 +114,7 @@ class Spawn:
 
     def up(self) -> None:
         """
-        Start the spawn container using docker-compose up.
+        Start the spawn container using docker-compose up with timeout handling.
         
         Raises:
             DockerOperationError: If docker-compose up fails
@@ -122,24 +122,90 @@ class Spawn:
         current_dir = os.getcwd()
         try:
             os.chdir(self.directory)
-            docker.compose.up(detach=True, force_recreate=True, recreate=True, attach_dependencies=False, build=True)
+            
+            # Check if Docker is available before attempting operation
+            from utils.validators import check_docker_available
+            is_available, error_msg = check_docker_available()
+            if not is_available:
+                raise DockerOperationError('up', error_msg, self.name)
+            
+            # Execute docker-compose up with timeout
+            import signal
+            from contextlib import contextmanager
+            
+            @contextmanager
+            def timeout_handler(seconds):
+                def timeout_signal_handler(signum, frame):
+                    raise TimeoutError(f"Operation timed out after {seconds} seconds")
+                
+                # Set the signal handler and alarm
+                old_handler = signal.signal(signal.SIGALRM, timeout_signal_handler)
+                signal.alarm(seconds)
+                try:
+                    yield
+                finally:
+                    signal.alarm(0)
+                    signal.signal(signal.SIGALRM, old_handler)
+            
+            try:
+                with timeout_handler(300):  # 5 minute timeout
+                    docker.compose.up(detach=True, force_recreate=True, recreate=True, attach_dependencies=False, build=True)
+            except TimeoutError as e:
+                logger.error(f"Docker operation timed out for spawn {self.name}: {str(e)}")
+                raise DockerOperationError(
+                    'up',
+                    'Operation timed out after 5 minutes. The container may be taking too long to start. Please check Docker resources and try again.',
+                    self.name
+                )
+            
             logger.info(f"Spawn {self.name} is up.")
             print(f"Spawn {self.name} is up.")
             self.__updateContainerInformation()
             
+        except DockerOperationError:
+            # Re-raise our custom exception
+            raise
         except Exception as e:
             logger.error(f"Failed to start spawn {self.name}: {str(e)}", exc_info=True)
-            raise DockerOperationError(
-                'up',
-                f"Failed to start container: {str(e)}",
-                self.name
-            )
+            error_str = str(e).lower()
+            
+            # Detect specific Docker errors
+            if "connection" in error_str or "daemon" in error_str:
+                raise DockerOperationError(
+                    'up',
+                    'Docker daemon is not running or not accessible. Please start Docker and try again.',
+                    self.name
+                )
+            elif "memory" in error_str or "oom" in error_str:
+                raise DockerOperationError(
+                    'up',
+                    'Insufficient memory to start container. Please free up system memory or adjust container memory limits.',
+                    self.name
+                )
+            elif "cpu" in error_str:
+                raise DockerOperationError(
+                    'up',
+                    'CPU resource constraints detected. Please check system resources.',
+                    self.name
+                )
+            elif "disk" in error_str or "space" in error_str or "no space left" in error_str:
+                raise DockerOperationError(
+                    'up',
+                    'Insufficient disk space to start container. Please free up disk space and try again.',
+                    self.name
+                )
+            else:
+                raise DockerOperationError(
+                    'up',
+                    f"Failed to start container: {str(e)}",
+                    self.name
+                )
         finally:
             os.chdir(current_dir)
 
     def stop(self) -> None:
         """
-        Stop the spawn container using docker-compose stop.
+        Stop the spawn container using docker-compose stop with timeout handling.
         
         Raises:
             DockerOperationError: If docker-compose stop fails
@@ -147,23 +213,41 @@ class Spawn:
         current_dir = os.getcwd()
         try:
             os.chdir(self.directory)
+            
+            # Check if Docker is available
+            from utils.validators import check_docker_available
+            is_available, error_msg = check_docker_available()
+            if not is_available:
+                raise DockerOperationError('stop', error_msg, self.name)
+            
             docker.compose.stop()
             logger.info(f"Spawn {self.name} is stopped.")
             print(f"Spawn {self.name} is stopped.")
             
+        except DockerOperationError:
+            raise
         except Exception as e:
             logger.error(f"Failed to stop spawn {self.name}: {str(e)}", exc_info=True)
-            raise DockerOperationError(
-                'stop',
-                f"Failed to stop container: {str(e)}",
-                self.name
-            )
+            error_str = str(e).lower()
+            
+            if "connection" in error_str or "daemon" in error_str:
+                raise DockerOperationError(
+                    'stop',
+                    'Docker daemon is not running or not accessible. Please start Docker and try again.',
+                    self.name
+                )
+            else:
+                raise DockerOperationError(
+                    'stop',
+                    f"Failed to stop container: {str(e)}",
+                    self.name
+                )
         finally:
             os.chdir(current_dir)
 
     def start(self) -> None:
         """
-        Start the spawn container using docker-compose start.
+        Start the spawn container using docker-compose start with timeout handling.
         
         Raises:
             DockerOperationError: If docker-compose start fails
@@ -171,23 +255,47 @@ class Spawn:
         current_dir = os.getcwd()
         try:
             os.chdir(self.directory)
+            
+            # Check if Docker is available
+            from utils.validators import check_docker_available
+            is_available, error_msg = check_docker_available()
+            if not is_available:
+                raise DockerOperationError('start', error_msg, self.name)
+            
             docker.compose.start()
             logger.info(f"Spawn {self.name} is started.")
             print(f"Spawn {self.name} is started.")
             
+        except DockerOperationError:
+            raise
         except Exception as e:
             logger.error(f"Failed to start spawn {self.name}: {str(e)}", exc_info=True)
-            raise DockerOperationError(
-                'start',
-                f"Failed to start container: {str(e)}",
-                self.name
-            )
+            error_str = str(e).lower()
+            
+            if "connection" in error_str or "daemon" in error_str:
+                raise DockerOperationError(
+                    'start',
+                    'Docker daemon is not running or not accessible. Please start Docker and try again.',
+                    self.name
+                )
+            elif "memory" in error_str or "oom" in error_str:
+                raise DockerOperationError(
+                    'start',
+                    'Insufficient memory to start container. Please free up system memory or adjust container memory limits.',
+                    self.name
+                )
+            else:
+                raise DockerOperationError(
+                    'start',
+                    f"Failed to start container: {str(e)}",
+                    self.name
+                )
         finally:
             os.chdir(current_dir)
 
     def purge(self) -> None:
         """
-        Remove the spawn container and delete its directory.
+        Remove the spawn container and delete its directory with timeout handling.
         
         Raises:
             DockerOperationError: If docker-compose down fails
@@ -196,17 +304,35 @@ class Spawn:
         current_dir = os.getcwd()
         try:
             os.chdir(self.directory)
+            
+            # Check if Docker is available
+            from utils.validators import check_docker_available
+            is_available, error_msg = check_docker_available()
+            if not is_available:
+                raise DockerOperationError('down', error_msg, self.name)
+            
             docker.compose.down(remove_images="all", volumes=True, remove_orphans=True)
             logger.info(f"Spawn {self.name} down.")
             print(f"Spawn {self.name} down.")
             
+        except DockerOperationError:
+            raise
         except Exception as e:
             logger.error(f"Failed to bring down spawn {self.name}: {str(e)}", exc_info=True)
-            raise DockerOperationError(
-                'down',
-                f"Failed to remove container: {str(e)}",
-                self.name
-            )
+            error_str = str(e).lower()
+            
+            if "connection" in error_str or "daemon" in error_str:
+                raise DockerOperationError(
+                    'down',
+                    'Docker daemon is not running or not accessible. Please start Docker and try again.',
+                    self.name
+                )
+            else:
+                raise DockerOperationError(
+                    'down',
+                    f"Failed to remove container: {str(e)}",
+                    self.name
+                )
         finally:
             os.chdir(current_dir)
 

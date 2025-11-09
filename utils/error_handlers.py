@@ -69,6 +69,15 @@ class FileOperationError(Exception):
         super().__init__(f"File operation '{operation}' failed for '{filepath}': {message}")
 
 
+class ResourceConstraintError(Exception):
+    """Raised when system resources are insufficient."""
+    
+    def __init__(self, resource_type: str, message: str):
+        self.resource_type = resource_type
+        self.message = message
+        super().__init__(f"Resource constraint ({resource_type}): {message}")
+
+
 # Decorator Functions
 
 def handle_spawn_not_found(func: Callable) -> Callable:
@@ -293,5 +302,37 @@ def handle_validation_errors(func: Callable) -> Callable:
             raise HTTPError(
                 400,
                 f"Invalid input for {e.field}: {e.message}"
+            )
+    return wrapper
+
+
+def handle_resource_errors(func: Callable) -> Callable:
+    """
+    Decorator to handle resource constraint exceptions.
+    Returns HTTP 500 error with resource constraint message.
+    """
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except ResourceConstraintError as e:
+            logger.error(
+                f"Resource constraint: {e.resource_type} - "
+                f"Path: {request.path} - Error: {e.message}",
+                exc_info=True
+            )
+            # Set flash message
+            session = request.environ.get('beaker.session')
+            if session:
+                if 'flash_messages' not in session:
+                    session['flash_messages'] = []
+                session['flash_messages'].append({
+                    'message': f"Resource constraint: {e.message}",
+                    'type': 'danger'
+                })
+                session.save()
+            raise HTTPError(
+                500,
+                f"Resource constraint: {e.message}"
             )
     return wrapper

@@ -6,15 +6,19 @@ from utils.validators import (
     validate_spawn_name, 
     validate_minecraft_version,
     validate_mod_name,
-    check_port_availability
+    check_port_availability,
+    check_disk_space,
+    check_docker_available
 )
 from utils.error_handlers import (
     ValidationError,
     SpawnNotFoundError,
+    ResourceConstraintError,
     handle_spawn_not_found,
     handle_validation_errors,
     handle_docker_errors,
-    handle_file_errors
+    handle_file_errors,
+    handle_resource_errors
 )
 from dotenv import load_dotenv
 import os
@@ -79,7 +83,20 @@ def index():
 @handle_validation_errors
 @handle_docker_errors
 @handle_file_errors
+@handle_resource_errors
 def spawn():
+    # Check if Docker is available
+    is_available, error_msg = check_docker_available()
+    if not is_available:
+        logger.error(f"Docker availability check failed: {error_msg}")
+        raise ResourceConstraintError('docker', error_msg)
+    
+    # Check disk space before creating spawn
+    is_sufficient, error_msg = check_disk_space(min_space_gb=5.0)
+    if not is_sufficient:
+        logger.error(f"Disk space check failed: {error_msg}")
+        raise ResourceConstraintError('disk_space', error_msg)
+    
     # Get raw form inputs
     name_raw = request.POST.get('name', '').strip()
     port_raw = request.POST.get('port', '').strip()
