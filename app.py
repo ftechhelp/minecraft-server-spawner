@@ -1,4 +1,5 @@
 from bottle import get, post, run, template, request, redirect, HTTPError
+from beaker.middleware import SessionMiddleware
 from utils.spawner import Spawner
 from utils.validators import (
     validate_port, 
@@ -24,13 +25,55 @@ load_dotenv()
 # Configure logging
 logger = logging.getLogger(__name__)
 
+# Session configuration
+session_opts = {
+    'session.type': 'memory',
+    'session.cookie_expires': 3600,
+    'session.auto': True
+}
+
 spawner = Spawner()
 spawner.loadSpawns()
+
+# Flash message helper functions
+def set_flash_message(message, message_type='info'):
+    """
+    Set a flash message to be displayed on the next page load.
+    
+    Args:
+        message (str): The message to display
+        message_type (str): The type of message ('success', 'info', 'warning', 'danger')
+    """
+    session = request.environ.get('beaker.session')
+    if session:
+        if 'flash_messages' not in session:
+            session['flash_messages'] = []
+        session['flash_messages'].append({
+            'message': message,
+            'type': message_type
+        })
+        session.save()
+
+def get_flash_messages():
+    """
+    Retrieve and clear all flash messages from the session.
+    
+    Returns:
+        list: List of flash message dictionaries with 'message' and 'type' keys
+    """
+    session = request.environ.get('beaker.session')
+    if session and 'flash_messages' in session:
+        messages = session['flash_messages']
+        session['flash_messages'] = []
+        session.save()
+        return messages
+    return []
 
 @get('/')
 def index():
     spawner.loadSpawns()
-    return template('./templates/index', spawns=spawner.spawns)
+    flash_messages = get_flash_messages()
+    return template('./templates/index', spawns=spawner.spawns, flash_messages=flash_messages)
 
 @post('/spawn')
 @handle_validation_errors
@@ -85,6 +128,7 @@ def spawn():
         new_minecraftVersion=minecraft_version, 
         new_forgeVersion=forge_version_raw
     )
+    set_flash_message(f"Spawn '{name}' created/modified successfully!", 'success')
     redirect("/")
 
 @get('/spawn/<name>')
@@ -92,7 +136,8 @@ def spawn():
 def view_spawn(name):
     if name not in spawner.spawns:
         raise SpawnNotFoundError(name)
-    return template('./templates/spawn', spawn=spawner.spawns[name])
+    flash_messages = get_flash_messages()
+    return template('./templates/spawn', spawn=spawner.spawns[name], flash_messages=flash_messages)
 
 @post('/spawn/<name>/recreate')
 @handle_spawn_not_found
@@ -103,6 +148,7 @@ def recreate_spawn(name):
     spawn = spawner.spawns[name]
     logger.info(f"Recreating spawn: {name}")
     spawn.up()
+    set_flash_message(f"Spawn '{name}' recreated successfully!", 'success')
     redirect(f"/spawn/{name}")
 
 @post('/spawn/<name>/start')
@@ -114,6 +160,7 @@ def start_spawn(name):
     spawn = spawner.spawns[name]
     logger.info(f"Starting spawn: {name}")
     spawn.start()
+    set_flash_message(f"Spawn '{name}' started successfully!", 'success')
     redirect(f"/spawn/{name}")
 
 @post('/spawn/<name>/stop')
@@ -125,6 +172,7 @@ def stop_spawn(name):
     spawn = spawner.spawns[name]
     logger.info(f"Stopping spawn: {name}")
     spawn.stop()
+    set_flash_message(f"Spawn '{name}' stopped successfully!", 'success')
     redirect(f"/spawn/{name}")
 
 @post('/spawn/<name>/delete')
@@ -137,6 +185,7 @@ def delete_spawn(name):
     spawn = spawner.spawns[name]
     logger.info(f"Deleting spawn: {name}")
     spawn.purge()
+    set_flash_message(f"Spawn '{name}' deleted successfully!", 'success')
     redirect('/')
 
 @post('/spawn/<name>/refresh')
@@ -148,6 +197,7 @@ def refresh_spawn(name):
     spawn = spawner.spawns[name]
     logger.info(f"Refreshing spawn information: {name}")
     spawn.refreshContainerInformation()
+    set_flash_message(f"Spawn '{name}' information refreshed!", 'info')
     redirect(f"/spawn/{name}")
 
 @get('/spawn/<name>/logs')
@@ -178,6 +228,7 @@ def delete_mod(name):
     
     logger.info(f"Deleting mod '{mod}' from spawn: {name}")
     spawn.removeMod(mod)
+    set_flash_message(f"Mod '{mod}' removed from spawn '{name}'!", 'success')
     redirect(f"/spawn/{name}")
 
 @post('/spawn/<name>/mods/add')
@@ -198,6 +249,7 @@ def add_mod(name):
     
     logger.info(f"Adding mod '{mod}' to spawn: {name}")
     spawn.addMod(mod)
+    set_flash_message(f"Mod '{mod}' added to spawn '{name}'!", 'success')
     redirect(f"/spawn/{name}")
 
 @post('/spawn/<name>/mods/sync')
@@ -211,6 +263,7 @@ def sync_mods(name):
     logger.info(f"Syncing mods for spawn: {name}")
     spawn.syncMods()
     spawner.create_or_modify_spawn(name=spawn.name, new_port=spawn.port, new_type=spawn.type, new_minecraftVersion=spawn.minecraft_version, new_forgeVersion=spawn.forge_version, mods=spawn.mods)
+    set_flash_message(f"Mods synced successfully for spawn '{name}'!", 'success')
     redirect(f"/spawn/{name}")
 
 @post('/spawn/<name>/mods/upload')
@@ -223,6 +276,7 @@ def upload_mod(name):
     spawn = spawner.spawns[name]
     logger.info(f"Uploading mods for spawn: {name}")
     spawn.uploadMods(request.files.get('mods'))
+    set_flash_message(f"Mods uploaded successfully for spawn '{name}'!", 'success')
     redirect(f"/spawn/{name}")
 
 
@@ -235,6 +289,7 @@ def save_server_properties(name):
     spawn = spawner.spawns[name]
     logger.info(f"Saving server properties for spawn: {name}")
     spawn.write_server_properties(request.POST.server_properties)
+    set_flash_message(f"Server properties saved for spawn '{name}'!", 'success')
     redirect(f"/spawn/{name}")
 
 @post('/spawn/<name>/console/send')
@@ -247,9 +302,16 @@ def send_console_command(name):
     command = request.POST.consoleCommand
     logger.info(f"Sending console command to spawn {name}: {command}")
     spawn.send_console_command(command)
+    set_flash_message(f"Console command sent to spawn '{name}'!", 'info')
     redirect(f"/spawn/{name}")
 
 
 
 
-run(host='0.0.0.0', port=8888, reloader=True, debug=True)
+# Wrap the Bottle app with SessionMiddleware
+from bottle import default_app
+app = default_app()
+app = SessionMiddleware(app, session_opts)
+
+if __name__ == '__main__':
+    run(app=app, host='0.0.0.0', port=8888, reloader=True, debug=True)

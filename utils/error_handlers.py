@@ -82,6 +82,16 @@ def handle_spawn_not_found(func: Callable) -> Callable:
             return func(*args, **kwargs)
         except SpawnNotFoundError as e:
             logger.error(f"Spawn not found: {e.spawn_name} - {request.path}")
+            # Set flash message
+            session = request.environ.get('beaker.session')
+            if session:
+                if 'flash_messages' not in session:
+                    session['flash_messages'] = []
+                session['flash_messages'].append({
+                    'message': f"Spawn '{e.spawn_name}' not found. It may have been deleted or never existed.",
+                    'type': 'danger'
+                })
+                session.save()
             raise HTTPError(
                 404,
                 f"Spawn '{e.spawn_name}' not found. It may have been deleted or never existed."
@@ -89,6 +99,16 @@ def handle_spawn_not_found(func: Callable) -> Callable:
         except KeyError as e:
             spawn_name = str(e).strip("'\"")
             logger.error(f"Spawn not found (KeyError): {spawn_name} - {request.path}")
+            # Set flash message
+            session = request.environ.get('beaker.session')
+            if session:
+                if 'flash_messages' not in session:
+                    session['flash_messages'] = []
+                session['flash_messages'].append({
+                    'message': f"Spawn '{spawn_name}' not found. It may have been deleted or never existed.",
+                    'type': 'danger'
+                })
+                session.save()
             raise HTTPError(
                 404,
                 f"Spawn '{spawn_name}' not found. It may have been deleted or never existed."
@@ -111,6 +131,16 @@ def handle_docker_errors(func: Callable) -> Callable:
                 f"Spawn: {e.spawn_name} - Path: {request.path} - Error: {e.message}",
                 exc_info=True
             )
+            # Set flash message
+            session = request.environ.get('beaker.session')
+            if session:
+                if 'flash_messages' not in session:
+                    session['flash_messages'] = []
+                session['flash_messages'].append({
+                    'message': f"Docker operation failed: {e.message}. Please ensure Docker is running and try again.",
+                    'type': 'danger'
+                })
+                session.save()
             raise HTTPError(
                 500,
                 f"Docker operation failed: {e.message}. "
@@ -124,6 +154,16 @@ def handle_docker_errors(func: Callable) -> Callable:
                     f"Docker-related error: {request.path} - {str(e)}",
                     exc_info=True
                 )
+                # Set flash message
+                session = request.environ.get('beaker.session')
+                if session:
+                    if 'flash_messages' not in session:
+                        session['flash_messages'] = []
+                    session['flash_messages'].append({
+                        'message': f"Docker operation failed: {str(e)}. Please ensure Docker is running and try again.",
+                        'type': 'danger'
+                    })
+                    session.save()
                 raise HTTPError(
                     500,
                     f"Docker operation failed: {str(e)}. "
@@ -148,6 +188,16 @@ def handle_file_errors(func: Callable) -> Callable:
                 f"File: {e.filepath} - Path: {request.path} - Error: {e.message}",
                 exc_info=True
             )
+            # Set flash message
+            session = request.environ.get('beaker.session')
+            if session:
+                if 'flash_messages' not in session:
+                    session['flash_messages'] = []
+                session['flash_messages'].append({
+                    'message': f"File operation failed: {e.message}. Please check file permissions and disk space.",
+                    'type': 'danger'
+                })
+                session.save()
             raise HTTPError(
                 500,
                 f"File operation failed: {e.message}. "
@@ -158,6 +208,16 @@ def handle_file_errors(func: Callable) -> Callable:
                 f"File not found: {request.path} - {str(e)}",
                 exc_info=True
             )
+            # Set flash message
+            session = request.environ.get('beaker.session')
+            if session:
+                if 'flash_messages' not in session:
+                    session['flash_messages'] = []
+                session['flash_messages'].append({
+                    'message': f"Required file not found: {str(e)}. The file may have been deleted or moved.",
+                    'type': 'danger'
+                })
+                session.save()
             raise HTTPError(
                 500,
                 f"Required file not found: {str(e)}. "
@@ -168,6 +228,16 @@ def handle_file_errors(func: Callable) -> Callable:
                 f"Permission denied: {request.path} - {str(e)}",
                 exc_info=True
             )
+            # Set flash message
+            session = request.environ.get('beaker.session')
+            if session:
+                if 'flash_messages' not in session:
+                    session['flash_messages'] = []
+                session['flash_messages'].append({
+                    'message': f"Permission denied: {str(e)}. Please check file and directory permissions.",
+                    'type': 'danger'
+                })
+                session.save()
             raise HTTPError(
                 500,
                 f"Permission denied: {str(e)}. "
@@ -178,6 +248,16 @@ def handle_file_errors(func: Callable) -> Callable:
                 f"OS error during file operation: {request.path} - {str(e)}",
                 exc_info=True
             )
+            # Set flash message
+            session = request.environ.get('beaker.session')
+            if session:
+                if 'flash_messages' not in session:
+                    session['flash_messages'] = []
+                session['flash_messages'].append({
+                    'message': f"File system error: {str(e)}. Please check disk space and permissions.",
+                    'type': 'danger'
+                })
+                session.save()
             raise HTTPError(
                 500,
                 f"File system error: {str(e)}. "
@@ -200,6 +280,16 @@ def handle_validation_errors(func: Callable) -> Callable:
                 f"Validation error: {e.field} - "
                 f"Value: {e.value} - Path: {request.path} - Error: {e.message}"
             )
+            # Set flash message
+            session = request.environ.get('beaker.session')
+            if session:
+                if 'flash_messages' not in session:
+                    session['flash_messages'] = []
+                session['flash_messages'].append({
+                    'message': f"Invalid input for {e.field}: {e.message}",
+                    'type': 'warning'
+                })
+                session.save()
             raise HTTPError(
                 400,
                 f"Invalid input for {e.field}: {e.message}"

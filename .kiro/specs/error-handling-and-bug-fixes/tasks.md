@@ -58,7 +58,7 @@
   - Add flash message support to `templates/spawn.tpl` for operation feedback
   - _Requirements: 8.1, 8.2, 8.3_
 
-- [ ] 8. Implement session-based flash messages
+- [x] 8. Implement session-based flash messages
   - Add session management to `app.py` using Bottle's built-in session support or beaker
   - Create helper functions `set_flash_message()` and `get_flash_messages()` in `app.py`
   - Modify routes to set flash messages on errors and successes
