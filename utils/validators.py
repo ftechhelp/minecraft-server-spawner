@@ -5,7 +5,10 @@ Provides validation functions for ports, spawn names, versions, and mods.
 
 import re
 import os
+import logging
 from typing import Tuple, Optional
+
+logger = logging.getLogger(__name__)
 
 
 def validate_port(port: str) -> Tuple[bool, Optional[int], str]:
@@ -156,6 +159,7 @@ def check_port_availability(port: int, spawner, exclude_spawn: Optional[str] = N
         
         # Check if port conflicts
         if spawn.port == port:
+            logger.warning(f"Port conflict detected: Port {port} is already in use by spawn '{spawn_name}'")
             return False, f"Port {port} is already in use by spawn '{spawn_name}'"
     
     return True, ""
@@ -207,11 +211,13 @@ def check_disk_space(path: str = ".", min_space_gb: float = 5.0) -> Tuple[bool, 
         free_gb = stat.free / (1024 ** 3)
         
         if free_gb < min_space_gb:
+            logger.warning(f"Insufficient disk space: {free_gb:.2f}GB available, {min_space_gb}GB required")
             return False, f"Insufficient disk space: {free_gb:.2f}GB available, {min_space_gb}GB required"
         
         return True, ""
         
     except Exception as e:
+        logger.error(f"Unable to check disk space: {str(e)}")
         return False, f"Unable to check disk space: {str(e)}"
 
 
@@ -232,5 +238,7 @@ def check_docker_available() -> Tuple[bool, str]:
     except Exception as e:
         error_msg = str(e).lower()
         if "connection" in error_msg or "refused" in error_msg or "not found" in error_msg:
+            logger.error("Docker daemon is not running or not accessible")
             return False, "Docker daemon is not running or not accessible. Please start Docker and try again."
+        logger.error(f"Docker is not available: {str(e)}")
         return False, f"Docker is not available: {str(e)}"

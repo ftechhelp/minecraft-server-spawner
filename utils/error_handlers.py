@@ -11,16 +11,7 @@ from typing import Callable, Any
 from bottle import HTTPError, redirect, request
 
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('app.log'),
-        logging.StreamHandler()
-    ]
-)
-
+# Get logger (configuration is done in app.py)
 logger = logging.getLogger(__name__)
 
 

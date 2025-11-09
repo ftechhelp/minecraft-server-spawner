@@ -23,10 +23,59 @@ from utils.error_handlers import (
 from dotenv import load_dotenv
 import os
 import logging
+from logging.handlers import RotatingFileHandler
 
 load_dotenv()
 
-# Configure logging
+# Configure logging with file and console handlers
+def configure_logging():
+    """
+    Configure application-wide logging with file rotation and console output.
+    Ensures sensitive information is not logged.
+    """
+    # Create logs directory if it doesn't exist
+    os.makedirs('logs', exist_ok=True)
+    
+    # Create formatter
+    formatter = logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    
+    # File handler with rotation (10MB max, keep 5 backup files)
+    file_handler = RotatingFileHandler(
+        'logs/app.log',
+        maxBytes=10*1024*1024,  # 10MB
+        backupCount=5
+    )
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(formatter)
+    
+    # Console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    console_handler.setFormatter(formatter)
+    
+    # Configure root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.INFO)
+    
+    # Remove existing handlers to avoid duplicates
+    root_logger.handlers.clear()
+    
+    # Add handlers
+    root_logger.addHandler(file_handler)
+    root_logger.addHandler(console_handler)
+    
+    # Set specific log levels for noisy libraries
+    logging.getLogger('urllib3').setLevel(logging.WARNING)
+    logging.getLogger('docker').setLevel(logging.WARNING)
+    logging.getLogger('python_on_whales').setLevel(logging.WARNING)
+    
+    logging.info("Logging configured successfully")
+
+# Initialize logging
+configure_logging()
 logger = logging.getLogger(__name__)
 
 # Session configuration
@@ -37,7 +86,9 @@ session_opts = {
 }
 
 spawner = Spawner()
+logger.info("Initializing Spawner and loading existing spawns")
 spawner.loadSpawns()
+logger.info(f"Application initialized with {len(spawner.spawns)} spawns loaded")
 
 # Flash message helper functions
 def set_flash_message(message, message_type='info'):
@@ -75,12 +126,14 @@ def get_flash_messages():
 
 @get('/')
 def index():
+    logger.info("Index page accessed")
     # Safely reload spawns (will skip if already in progress)
     spawner.loadSpawns()
     flash_messages = get_flash_messages()
     # Get spawns with thread safety
     with spawner._spawns_lock:
         spawns_copy = dict(spawner.spawns)
+    logger.info(f"Displaying {len(spawns_copy)} spawns on index page")
     return template('./templates/index', spawns=spawns_copy, flash_messages=flash_messages)
 
 @post('/spawn')
@@ -141,7 +194,7 @@ def spawn():
     
     # Forge version is optional, no validation needed
     
-    logger.info(f"Creating/modifying spawn: {name} on port {port}")
+    logger.info(f"Creating/modifying spawn: {name} on port {port}, type: {type_raw}, MC version: {minecraft_version}")
     spawner.create_or_modify_spawn(
         name=name, 
         new_port=port, 
@@ -149,12 +202,14 @@ def spawn():
         new_minecraftVersion=minecraft_version, 
         new_forgeVersion=forge_version_raw
     )
+    logger.info(f"Successfully created/modified spawn: {name}")
     set_flash_message(f"Spawn '{name}' created/modified successfully!", 'success')
     redirect("/")
 
 @get('/spawn/<name>')
 @handle_spawn_not_found
 def view_spawn(name):
+    logger.info(f"Viewing spawn details: {name}")
     if name not in spawner.spawns:
         raise SpawnNotFoundError(name)
     flash_messages = get_flash_messages()
@@ -169,6 +224,7 @@ def recreate_spawn(name):
     spawn = spawner.spawns[name]
     logger.info(f"Recreating spawn: {name}")
     spawn.up()
+    logger.info(f"Successfully recreated spawn: {name}")
     set_flash_message(f"Spawn '{name}' recreated successfully!", 'success')
     redirect(f"/spawn/{name}")
 
@@ -181,6 +237,7 @@ def start_spawn(name):
     spawn = spawner.spawns[name]
     logger.info(f"Starting spawn: {name}")
     spawn.start()
+    logger.info(f"Successfully started spawn: {name}")
     set_flash_message(f"Spawn '{name}' started successfully!", 'success')
     redirect(f"/spawn/{name}")
 
@@ -193,6 +250,7 @@ def stop_spawn(name):
     spawn = spawner.spawns[name]
     logger.info(f"Stopping spawn: {name}")
     spawn.stop()
+    logger.info(f"Successfully stopped spawn: {name}")
     set_flash_message(f"Spawn '{name}' stopped successfully!", 'success')
     redirect(f"/spawn/{name}")
 
@@ -206,6 +264,7 @@ def delete_spawn(name):
     spawn = spawner.spawns[name]
     logger.info(f"Deleting spawn: {name}")
     spawn.purge()
+    logger.info(f"Successfully deleted spawn: {name}")
     set_flash_message(f"Spawn '{name}' deleted successfully!", 'success')
     redirect('/')
 
@@ -218,6 +277,7 @@ def refresh_spawn(name):
     spawn = spawner.spawns[name]
     logger.info(f"Refreshing spawn information: {name}")
     spawn.refreshContainerInformation()
+    logger.info(f"Successfully refreshed spawn information: {name}")
     set_flash_message(f"Spawn '{name}' information refreshed!", 'info')
     redirect(f"/spawn/{name}")
 
@@ -229,7 +289,9 @@ def download_logs(name):
         raise SpawnNotFoundError(name)
     spawn = spawner.spawns[name]
     logger.info(f"Retrieving logs for spawn: {name}")
-    return template('./templates/spawn_logs', logs=spawn.get_logs())
+    logs = spawn.get_logs()
+    logger.info(f"Successfully retrieved logs for spawn: {name}")
+    return template('./templates/spawn_logs', logs=logs)
 
 @post('/spawn/<name>/mods/delete')
 @handle_spawn_not_found
@@ -244,11 +306,12 @@ def delete_mod(name):
     mod_raw = request.POST.get('mod', '').strip()
     is_valid, mod, error_msg = validate_mod_name(mod_raw)
     if not is_valid:
-        logger.warning(f"Mod name validation failed: {error_msg}")
+        logger.warning(f"Mod name validation failed for spawn {name}: {error_msg}")
         raise ValidationError('mod name', error_msg, mod_raw)
     
     logger.info(f"Deleting mod '{mod}' from spawn: {name}")
     spawn.removeMod(mod)
+    logger.info(f"Successfully deleted mod '{mod}' from spawn: {name}")
     set_flash_message(f"Mod '{mod}' removed from spawn '{name}'!", 'success')
     redirect(f"/spawn/{name}")
 
@@ -265,11 +328,12 @@ def add_mod(name):
     mod_raw = request.POST.get('mod', '').strip()
     is_valid, mod, error_msg = validate_mod_name(mod_raw)
     if not is_valid:
-        logger.warning(f"Mod name validation failed: {error_msg}")
+        logger.warning(f"Mod name validation failed for spawn {name}: {error_msg}")
         raise ValidationError('mod name', error_msg, mod_raw)
     
     logger.info(f"Adding mod '{mod}' to spawn: {name}")
     spawn.addMod(mod)
+    logger.info(f"Successfully added mod '{mod}' to spawn: {name}")
     set_flash_message(f"Mod '{mod}' added to spawn '{name}'!", 'success')
     redirect(f"/spawn/{name}")
 
@@ -284,6 +348,7 @@ def sync_mods(name):
     logger.info(f"Syncing mods for spawn: {name}")
     spawn.syncMods()
     spawner.create_or_modify_spawn(name=spawn.name, new_port=spawn.port, new_type=spawn.type, new_minecraftVersion=spawn.minecraft_version, new_forgeVersion=spawn.forge_version, mods=spawn.mods)
+    logger.info(f"Successfully synced mods for spawn: {name}")
     set_flash_message(f"Mods synced successfully for spawn '{name}'!", 'success')
     redirect(f"/spawn/{name}")
 
@@ -297,6 +362,7 @@ def upload_mod(name):
     spawn = spawner.spawns[name]
     logger.info(f"Uploading mods for spawn: {name}")
     spawn.uploadMods(request.files.get('mods'))
+    logger.info(f"Successfully uploaded mods for spawn: {name}")
     set_flash_message(f"Mods uploaded successfully for spawn '{name}'!", 'success')
     redirect(f"/spawn/{name}")
 
@@ -310,6 +376,7 @@ def save_server_properties(name):
     spawn = spawner.spawns[name]
     logger.info(f"Saving server properties for spawn: {name}")
     spawn.write_server_properties(request.POST.server_properties)
+    logger.info(f"Successfully saved server properties for spawn: {name}")
     set_flash_message(f"Server properties saved for spawn '{name}'!", 'success')
     redirect(f"/spawn/{name}")
 
@@ -321,8 +388,11 @@ def send_console_command(name):
         raise SpawnNotFoundError(name)
     spawn = spawner.spawns[name]
     command = request.POST.consoleCommand
-    logger.info(f"Sending console command to spawn {name}: {command}")
+    # Sanitize command for logging (don't log potentially sensitive commands)
+    safe_command = command if len(command) < 100 else command[:100] + "..."
+    logger.info(f"Sending console command to spawn {name}: {safe_command}")
     spawn.send_console_command(command)
+    logger.info(f"Successfully sent console command to spawn: {name}")
     set_flash_message(f"Console command sent to spawn '{name}'!", 'info')
     redirect(f"/spawn/{name}")
 
@@ -335,4 +405,14 @@ app = default_app()
 app = SessionMiddleware(app, session_opts)
 
 if __name__ == '__main__':
-    run(app=app, host='0.0.0.0', port=8888, reloader=True, debug=True)
+    logger.info("Starting Minecraft Server Management Application")
+    logger.info("Server listening on http://0.0.0.0:8888")
+    try:
+        run(app=app, host='0.0.0.0', port=8888, reloader=True, debug=True)
+    except KeyboardInterrupt:
+        logger.info("Application shutdown requested by user")
+    except Exception as e:
+        logger.error(f"Application crashed: {str(e)}", exc_info=True)
+        raise
+    finally:
+        logger.info("Application shutdown complete")
