@@ -75,9 +75,13 @@ def get_flash_messages():
 
 @get('/')
 def index():
+    # Safely reload spawns (will skip if already in progress)
     spawner.loadSpawns()
     flash_messages = get_flash_messages()
-    return template('./templates/index', spawns=spawner.spawns, flash_messages=flash_messages)
+    # Get spawns with thread safety
+    with spawner._spawns_lock:
+        spawns_copy = dict(spawner.spawns)
+    return template('./templates/index', spawns=spawns_copy, flash_messages=flash_messages)
 
 @post('/spawn')
 @handle_validation_errors

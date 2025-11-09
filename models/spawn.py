@@ -5,6 +5,7 @@ import shutil
 import tempfile
 import zipfile
 import logging
+import threading
 from bs4 import BeautifulSoup
 from utils.error_handlers import DockerOperationError, FileOperationError, ValidationError
 
@@ -27,6 +28,8 @@ class Spawn:
         self.unloadedAddedMods: list = []
         self.server_properties: str = ""
         self.docker_compose_file: str = f"{self.directory}/docker-compose.yml"
+        self._operation_lock = threading.Lock()  # Lock for spawn operations
+        self._state_lock = threading.RLock()  # Lock for state checking
 
         self.__updateContainerInformation()
         self.__create_directory()
@@ -115,10 +118,20 @@ class Spawn:
     def up(self) -> None:
         """
         Start the spawn container using docker-compose up with timeout handling.
+        Thread-safe with operation locking to prevent concurrent operations.
         
         Raises:
             DockerOperationError: If docker-compose up fails
         """
+        # Acquire operation lock to prevent concurrent operations
+        if not self._operation_lock.acquire(timeout=60):
+            logger.error(f"Failed to acquire operation lock for spawn {self.name}")
+            raise DockerOperationError(
+                'up',
+                'Another operation is in progress for this spawn. Please wait and try again.',
+                self.name
+            )
+        
         current_dir = os.getcwd()
         try:
             os.chdir(self.directory)
@@ -202,14 +215,25 @@ class Spawn:
                 )
         finally:
             os.chdir(current_dir)
+            self._operation_lock.release()
 
     def stop(self) -> None:
         """
         Stop the spawn container using docker-compose stop with timeout handling.
+        Thread-safe with operation locking to prevent concurrent operations.
         
         Raises:
             DockerOperationError: If docker-compose stop fails
         """
+        # Acquire operation lock
+        if not self._operation_lock.acquire(timeout=60):
+            logger.error(f"Failed to acquire operation lock for spawn {self.name}")
+            raise DockerOperationError(
+                'stop',
+                'Another operation is in progress for this spawn. Please wait and try again.',
+                self.name
+            )
+        
         current_dir = os.getcwd()
         try:
             os.chdir(self.directory)
@@ -244,14 +268,25 @@ class Spawn:
                 )
         finally:
             os.chdir(current_dir)
+            self._operation_lock.release()
 
     def start(self) -> None:
         """
         Start the spawn container using docker-compose start with timeout handling.
+        Thread-safe with operation locking to prevent concurrent operations.
         
         Raises:
             DockerOperationError: If docker-compose start fails
         """
+        # Acquire operation lock
+        if not self._operation_lock.acquire(timeout=60):
+            logger.error(f"Failed to acquire operation lock for spawn {self.name}")
+            raise DockerOperationError(
+                'start',
+                'Another operation is in progress for this spawn. Please wait and try again.',
+                self.name
+            )
+        
         current_dir = os.getcwd()
         try:
             os.chdir(self.directory)
@@ -292,15 +327,26 @@ class Spawn:
                 )
         finally:
             os.chdir(current_dir)
+            self._operation_lock.release()
 
     def purge(self) -> None:
         """
         Remove the spawn container and delete its directory with timeout handling.
+        Thread-safe with operation locking to prevent concurrent operations.
         
         Raises:
             DockerOperationError: If docker-compose down fails
             FileOperationError: If directory deletion fails
         """
+        # Acquire operation lock
+        if not self._operation_lock.acquire(timeout=60):
+            logger.error(f"Failed to acquire operation lock for spawn {self.name}")
+            raise DockerOperationError(
+                'down',
+                'Another operation is in progress for this spawn. Please wait and try again.',
+                self.name
+            )
+        
         current_dir = os.getcwd()
         try:
             os.chdir(self.directory)
@@ -353,6 +399,8 @@ class Spawn:
                 self.directory,
                 f"Failed to delete spawn directory: {str(e)}"
             )
+        finally:
+            self._operation_lock.release()
 
     def get_status(self) -> str:
         """
@@ -370,29 +418,64 @@ class Spawn:
     def is_running(self) -> bool:
         """
         Check if the container is currently running.
+        Thread-safe state checking.
         
         Returns:
             True if container is running, False otherwise
         """
-        if self.container is None:
-            return False
-        
-        try:
-            # Refresh container information to get current state
-            self.__updateContainerInformation()
-            return self.container is not None and self.container.state.status == "running"
-        except Exception as e:
-            logger.warning(f"Error checking if spawn {self.name} is running: {str(e)}")
-            return False
+        with self._state_lock:
+            if self.container is None:
+                return False
+            
+            try:
+                # Refresh container information to get current state
+                self.__updateContainerInformation()
+                return self.container is not None and self.container.state.status == "running"
+            except Exception as e:
+                logger.warning(f"Error checking if spawn {self.name} is running: {str(e)}")
+                return False
     
     def can_execute_command(self) -> bool:
         """
         Check if the container is in a state where commands can be executed.
+        Thread-safe state checking.
         
         Returns:
             True if commands can be executed, False otherwise
         """
         return self.is_running()
+    
+    def _check_operation_in_progress(self) -> bool:
+        """
+        Check if an operation is currently in progress for this spawn.
+        
+        Returns:
+            True if operation is in progress, False otherwise
+        """
+        return self._operation_lock.locked()
+    
+    def _wait_for_state_change(self, expected_state: str, timeout: int = 30) -> bool:
+        """
+        Wait for container to reach expected state.
+        
+        Args:
+            expected_state: Expected container state (e.g., 'running', 'exited')
+            timeout: Maximum time to wait in seconds
+            
+        Returns:
+            True if state reached, False if timeout
+        """
+        import time
+        start_time = time.time()
+        
+        while time.time() - start_time < timeout:
+            with self._state_lock:
+                self.__updateContainerInformation()
+                if self.container and self.container.state.status == expected_state:
+                    return True
+            time.sleep(0.5)
+        
+        return False
     
     def get_logs(self) -> str:
         self.__updateLogs()
