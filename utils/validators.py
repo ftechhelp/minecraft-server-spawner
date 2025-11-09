@@ -159,3 +159,30 @@ def check_port_availability(port: int, spawner, exclude_spawn: Optional[str] = N
             return False, f"Port {port} is already in use by spawn '{spawn_name}'"
     
     return True, ""
+
+
+def validate_file_size(file_path: str, max_size_mb: int = 100) -> Tuple[bool, str]:
+    """
+    Validates that a file does not exceed the maximum size limit.
+    
+    Args:
+        file_path: Path to the file to check
+        max_size_mb: Maximum file size in megabytes (default: 100MB)
+        
+    Returns:
+        Tuple of (is_valid, error_message)
+        - is_valid: True if file size is within limits
+        - error_message: Empty string if valid, error description otherwise
+    """
+    try:
+        file_size = os.path.getsize(file_path)
+        max_size_bytes = max_size_mb * 1024 * 1024
+        
+        if file_size > max_size_bytes:
+            size_mb = file_size / (1024 * 1024)
+            return False, f"File size ({size_mb:.2f}MB) exceeds maximum allowed size of {max_size_mb}MB"
+        
+        return True, ""
+        
+    except OSError as e:
+        return False, f"Unable to check file size: {str(e)}"

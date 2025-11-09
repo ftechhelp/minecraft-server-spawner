@@ -305,11 +305,30 @@ class Spawn:
         temp_dir = None
         try:
             # Create a temporary directory to extract the zip file
-            temp_dir = tempfile.mkdtemp()
+            try:
+                temp_dir = tempfile.mkdtemp()
+            except (OSError, PermissionError) as e:
+                logger.error(f"Failed to create temporary directory for {self.name}: {str(e)}")
+                raise FileOperationError(
+                    'create',
+                    'temporary directory',
+                    f"Failed to create temporary directory: {str(e)}"
+                )
             
             # Save the uploaded file to the temp directory
             zip_path = os.path.join(temp_dir, "modpack.zip")
             zip_file.save(zip_path)
+            
+            # Validate file size (100MB limit)
+            from utils.validators import validate_file_size
+            is_valid_size, size_error = validate_file_size(zip_path, max_size_mb=100)
+            if not is_valid_size:
+                logger.error(f"Uploaded file exceeds size limit for {self.name}: {size_error}")
+                raise ValidationError(
+                    'modpack_file',
+                    size_error,
+                    zip_path
+                )
             
             # Validate that it's a ZIP file
             if not zipfile.is_zipfile(zip_path):
