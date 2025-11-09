@@ -57,8 +57,29 @@
                 $fileNameDisplay.text('No file selected');
             }
         });
+
+        // Auto-dismiss flash messages after 5 seconds
+        setTimeout(function() {
+            $('.notification .delete').each(function() {
+                $(this).click();
+            });
+        }, 5000);
+
+        // Handle delete button on flash messages
+        $('.notification .delete').click(function() {
+            $(this).parent().fadeOut();
+        });
     });
 </script>
+
+%if get('flash_messages'):
+    %for flash in flash_messages:
+        <div class="notification is-{{flash.get('type', 'info')}} m-3">
+            <button class="delete"></button>
+            {{flash.get('message', '')}}
+        </div>
+    %end
+%end
 
 <div class="columns m-5">
     <div class="column is-4">
