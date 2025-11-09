@@ -161,17 +161,27 @@ def spawn():
     minecraft_version_raw = request.POST.get('minecraft_version', '').strip()
     forge_version_raw = request.POST.get('forge_version', '').strip() or None
     
-    # Validate spawn name
-    is_valid, name, error_msg = validate_spawn_name(name_raw)
-    if not is_valid:
-        logger.warning(f"Spawn name validation failed: {error_msg}")
-        raise ValidationError('spawn name', error_msg, name_raw)
+    # Validate spawn name (allow empty for auto-generated UUID)
+    if name_raw:
+        is_valid, name, error_msg = validate_spawn_name(name_raw)
+        if not is_valid:
+            logger.warning(f"Spawn name validation failed: {error_msg}")
+            raise ValidationError('spawn name', error_msg, name_raw)
+    else:
+        # Empty name will trigger UUID generation in spawner
+        import uuid
+        name = str(uuid.uuid4())
+        logger.info(f"No spawn name provided, generated UUID: {name}")
     
-    # Validate port
-    is_valid, port, error_msg = validate_port(port_raw)
-    if not is_valid:
-        logger.warning(f"Port validation failed: {error_msg}")
-        raise ValidationError('port', error_msg, port_raw)
+    # Validate port (default to 25565 if empty)
+    if not port_raw:
+        port = 25565
+        logger.info("No port provided, using default: 25565")
+    else:
+        is_valid, port, error_msg = validate_port(port_raw)
+        if not is_valid:
+            logger.warning(f"Port validation failed: {error_msg}")
+            raise ValidationError('port', error_msg, port_raw)
     
     # Check for port conflicts (only if creating new spawn)
     if name not in spawner.spawns:
@@ -186,11 +196,15 @@ def spawn():
             logger.warning(f"Port conflict detected: {error_msg}")
             raise ValidationError('port', error_msg, port)
     
-    # Validate Minecraft version
-    is_valid, minecraft_version, error_msg = validate_minecraft_version(minecraft_version_raw)
-    if not is_valid:
-        logger.warning(f"Minecraft version validation failed: {error_msg}")
-        raise ValidationError('minecraft version', error_msg, minecraft_version_raw)
+    # Validate Minecraft version (default to LATEST if empty)
+    if not minecraft_version_raw:
+        minecraft_version = "LATEST"
+        logger.info("No Minecraft version provided, using default: LATEST")
+    else:
+        is_valid, minecraft_version, error_msg = validate_minecraft_version(minecraft_version_raw)
+        if not is_valid:
+            logger.warning(f"Minecraft version validation failed: {error_msg}")
+            raise ValidationError('minecraft version', error_msg, minecraft_version_raw)
     
     # Forge version is optional, no validation needed
     

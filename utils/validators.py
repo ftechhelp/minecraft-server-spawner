@@ -43,9 +43,11 @@ def validate_port(port: str) -> Tuple[bool, Optional[int], str]:
 def validate_spawn_name(name: str) -> Tuple[bool, str, str]:
     """
     Validates spawn names to prevent path traversal and invalid characters.
+    Note: This function expects a non-empty name. Empty names should be handled
+    by the caller (e.g., generating a UUID).
     
     Args:
-        name: Spawn name to validate
+        name: Spawn name to validate (must be non-empty)
         
     Returns:
         Tuple of (is_valid, validated_name, error_message)
@@ -54,7 +56,7 @@ def validate_spawn_name(name: str) -> Tuple[bool, str, str]:
         - error_message: Empty string if valid, error description otherwise
     """
     if not name or not name.strip():
-        return False, "", "Spawn name is required"
+        return False, "", "Spawn name cannot be empty when provided"
     
     name = name.strip()
     
