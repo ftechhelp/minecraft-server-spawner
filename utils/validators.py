@@ -30,9 +30,9 @@ def validate_port(port: str) -> Tuple[bool, Optional[int], str]:
     except (ValueError, TypeError):
         return False, None, "Port must be a valid number"
     
-    # Check port range (1-65535)
-    if port_int < 1 or port_int > 65535:
-        return False, None, "Port must be between 1 and 65535"
+    # Check port range (25565-25665 for exposed ports)
+    if port_int < 25565 or port_int > 25665:
+        return False, None, "Port must be between 25565 and 25665"
     
     return True, port_int, ""
 

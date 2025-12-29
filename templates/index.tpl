@@ -18,7 +18,7 @@
                 <input class="input is-link" type="text" name="name" placeholder="Unique Name (Random UUID)">
             </div>
             <div class="control column">
-                <input class="input is-link" type="text" name="port" placeholder="Port (25565)">
+                <input class="input is-link" type="number" name="port" placeholder="Port (25565-25665)" min="25565" max="25665">
             </div>
             <div class="control column">
                 <div class="select is-fullwidth">
