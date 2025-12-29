@@ -22,6 +22,8 @@ class Spawn:
         self.server_properties: str = ""
         self.docker_compose_file: str = os.path.join(self.directory, "docker-compose.yml")
         self.mods_dir: str = os.path.join(self.directory, "data", "mods")
+        self.pending_deletions_file: str = os.path.join(self.directory, ".pending_mod_deletions")
+        self.pending_mod_deletions: list = self.__load_pending_deletions()
 
         self.__updateContainerInformation()
         self.__create_directory()
@@ -43,6 +45,8 @@ class Spawn:
         print(f"Spawn {self.name} is up.")
         self.__updateContainerInformation()
         os.chdir("../..")
+        # Clear pending deletions after successful restart
+        self.clear_pending_deletions()
 
     def stop(self) -> None:
         os.chdir(self.directory)
@@ -133,6 +137,33 @@ class Spawn:
         except:
             self.logs = "No logs available."
 
+    def __load_pending_deletions(self) -> list:
+        try:
+            if os.path.exists(self.pending_deletions_file):
+                with open(self.pending_deletions_file, 'r') as f:
+                    return [line.strip() for line in f.readlines() if line.strip()]
+        except Exception:
+            pass
+        return []
+
+    def __save_pending_deletions(self) -> None:
+        try:
+            os.makedirs(os.path.dirname(self.pending_deletions_file), exist_ok=True)
+            with open(self.pending_deletions_file, 'w') as f:
+                for mod in self.pending_mod_deletions:
+                    f.write(f"{mod}\n")
+        except Exception as e:
+            print(f"Error saving pending deletions for {self.name}: {str(e)}")
+
+    def clear_pending_deletions(self) -> None:
+        """Clear pending deletions list after restart"""
+        self.pending_mod_deletions = []
+        try:
+            if os.path.exists(self.pending_deletions_file):
+                os.remove(self.pending_deletions_file)
+        except Exception:
+            pass
+
     # --- Mods management based on filesystem ---
     def list_mods(self) -> list:
         try:
@@ -199,6 +230,10 @@ class Spawn:
             fp = os.path.join(self.mods_dir, filename)
             if os.path.exists(fp) and os.path.isfile(fp):
                 os.remove(fp)
-                self.up()
+                # Track pending deletion without restarting
+                if filename not in self.pending_mod_deletions:
+                    self.pending_mod_deletions.append(filename)
+                    self.__save_pending_deletions()
+                print(f"Deleted mod {filename} for {self.name} (restart required)")
         except Exception as e:
             print(f"Error removing mod {filename} for {self.name}: {str(e)}")

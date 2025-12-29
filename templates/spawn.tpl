@@ -131,6 +131,16 @@
                                     <h4 class="subtitle is-4">{{len(mods)}}</h4>
                                 </td>
                             </tr>
+                            %if len(spawn.pending_mod_deletions) > 0:
+                            <tr>
+                                <td>
+                                    <h4 class="subtitle is-4">Pending Deletions:</h4>
+                                </td>
+                                <td>
+                                    <h4 class="subtitle is-4 has-text-warning">{{len(spawn.pending_mod_deletions)}} (restart required)</h4>
+                                </td>
+                            </tr>
+                            %end
                         </tbody>
                     </table>
                 </p>
