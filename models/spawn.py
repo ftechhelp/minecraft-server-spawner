@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 class Spawn:
 
 
-    def __init__(self, name: str, port: int, volume: str, type: str, minecraft_version: str, forge_version: str, mods: list) -> None:
+    def __init__(self, name: str, port: int, volume: str, type: str, minecraft_version: str, forge_version: str) -> None:
         self.base_dir: str = os.environ.get("SPAWNS_DIR", "./spawns")
         self.name: str = name
         self.directory: str = os.path.join(self.base_dir, self.name)
@@ -19,12 +19,9 @@ class Spawn:
         self.type: str = type
         self.minecraft_version: str = minecraft_version
         self.forge_version: str = forge_version
-        self.mods: list = mods
-        self.virtualMods: list = mods[:]
-        self.unloadedRemovedMods: list = []
-        self.unloadedAddedMods: list = []
         self.server_properties: str = ""
         self.docker_compose_file: str = os.path.join(self.directory, "docker-compose.yml")
+        self.mods_dir: str = os.path.join(self.directory, "data", "mods")
 
         self.__updateContainerInformation()
         self.__create_directory()
@@ -84,96 +81,10 @@ class Spawn:
     
     def refreshContainerInformation(self) -> None:
         self.__updateContainerInformation()
+        # Ensure mods directory exists and can be read
+        os.makedirs(self.mods_dir, exist_ok=True)
 
-    def removeMod(self, mod: str) -> None:
-        self.unloadedRemovedMods.append(mod)
-        self.unloadedAddedMods = [m for m in self.unloadedAddedMods if m != mod]
-        self.virtualMods = [m for m in self.virtualMods if m != mod]
-        print(self.virtualMods)
-
-    def addMod(self, mod: str) -> None:
-        self.unloadedAddedMods.append(mod)
-        self.unloadedRemovedMods = [m for m in self.unloadedRemovedMods if m != mod]
-        self.virtualMods.append(mod)
-
-    def syncMods(self) -> None:
-        self.mods = self.virtualMods[:]
-        self.unloadedRemovedMods = []
-        self.unloadedAddedMods = []
-
-    def uploadMods(self, zip_file) -> None:
-        try:
-            # Create a temporary directory to extract the zip file
-            with tempfile.TemporaryDirectory() as temp_dir:
-                # Save the uploaded file to the temp directory
-                zip_path = os.path.join(temp_dir, "modpack.zip")
-                zip_file.save(zip_path)
-                
-                # Extract the zip file
-                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                    zip_ref.extractall(temp_dir)
-                
-                # Find the modlist.html file
-                modlist_path = None
-                for root, dirs, files in os.walk(temp_dir):
-                    if "modlist.html" in files:
-                        modlist_path = os.path.join(root, "modlist.html")
-                        break
-                
-                if not modlist_path:
-                    print(f"Error: modlist.html not found in the uploaded zip file for {self.name}")
-                    return
-                
-                # Parse the HTML file to extract URLs
-                with open(modlist_path, 'r', encoding='utf-8') as file:
-                    html_content = file.read()
-                
-                # Use BeautifulSoup to parse the HTML
-                soup = BeautifulSoup(html_content, 'html.parser')
-                
-                # Find all links in the HTML
-                mod_links = []
-                for a_tag in soup.find_all('a', href=True):
-                    url = a_tag['href']
-                    # Check if it's a valid URL
-                    if url.startswith('http') and 'curseforge.com' in url:
-                        mod_links.append(url)
-                
-                # Add each mod URL
-                for mod_url in mod_links:
-                    # Extract the project slug according to CurseForge format
-                    # CurseForge URLs typically follow this pattern:
-                    # https://www.curseforge.com/minecraft/mc-mods/[project-slug]
-                    
-                    # Check if it's a CurseForge URL
-                    if 'curseforge.com/minecraft/mc-mods/' in mod_url:
-                        # Parse the URL to extract just the project slug
-                        # Remove trailing slash if present
-                        parts = mod_url.rstrip('/').split('/')
-                        
-                        # The slug should be the last part of the URL for project pages
-                        # For file pages, we need to handle differently
-                        if 'files' in parts:
-                            # This is a file page URL, get the project slug which is before 'files'
-                            try:
-                                slug_index = parts.index('mc-mods') + 1
-                                if slug_index < len(parts):
-                                    slug = parts[slug_index]
-                                    self.addMod(slug)
-                            except (ValueError, IndexError):
-                                print(f"Could not parse file URL: {mod_url}")
-                        else:
-                            # This is a project page URL, get the last part
-                            slug = parts[-1]
-                            self.addMod(slug)
-                    else:
-                        # Not a CurseForge URL or doesn't match expected pattern
-                        print(f"Skipping URL that doesn't match expected CurseForge pattern: {mod_url}")
-                
-                print(f"Successfully processed modpack for {self.name}. Added {len(mod_links)} mods.")
-                
-        except Exception as e:
-            print(f"Error processing modpack for {self.name}: {str(e)}")
+    # Removed old CurseForge/slug-based mod management; using filesystem now
 
     def load_server_properties(self) -> None:
         try:
@@ -205,6 +116,8 @@ class Spawn:
     def __create_directory(self) -> None:
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
+        # Ensure data/mods directory exists
+        os.makedirs(self.mods_dir, exist_ok=True)
 
     def __updateContainerInformation(self) -> None:
         try:
@@ -219,3 +132,73 @@ class Spawn:
             self.logs = self.container.logs(tail=tail, timestamps=True)
         except:
             self.logs = "No logs available."
+
+    # --- Mods management based on filesystem ---
+    def list_mods(self) -> list:
+        try:
+            if not os.path.exists(self.mods_dir):
+                return []
+            return sorted([f for f in os.listdir(self.mods_dir) if os.path.isfile(os.path.join(self.mods_dir, f))])
+        except Exception:
+            return []
+
+    def replace_mods_from_uploads(self, files: list) -> None:
+        try:
+            print(f"[replace_mods_from_uploads] Received {len(files) if files else 0} files for {self.name}")
+            os.makedirs(self.mods_dir, exist_ok=True)
+            
+            # Remove current mods
+            removed_count = 0
+            for f in os.listdir(self.mods_dir):
+                fp = os.path.join(self.mods_dir, f)
+                if os.path.isfile(fp):
+                    os.remove(fp)
+                    removed_count += 1
+            print(f"[replace_mods_from_uploads] Removed {removed_count} existing mods")
+            
+            # Save uploaded mods
+            saved_count = 0
+            for upload in files or []:
+                filename = os.path.basename(upload.filename)
+                print(f"[replace_mods_from_uploads] Processing file: {filename}")
+                if not filename:
+                    continue
+                # Only accept jar files for mods
+                if not filename.lower().endswith(".jar"):
+                    print(f"[replace_mods_from_uploads] Skipping non-jar file: {filename}")
+                    continue
+                dest = os.path.join(self.mods_dir, filename)
+                upload.save(dest, overwrite=True)
+                saved_count += 1
+                print(f"[replace_mods_from_uploads] Saved: {filename}")
+            
+            print(f"[replace_mods_from_uploads] Saved {saved_count} mods, restarting server...")
+            # Restart to apply changes
+            self.up()
+        except Exception as e:
+            print(f"Error replacing mods for {self.name}: {str(e)}")
+            import traceback
+            traceback.print_exc()
+
+    def add_mod_file(self, file_upload) -> None:
+        try:
+            os.makedirs(self.mods_dir, exist_ok=True)
+            filename = os.path.basename(file_upload.filename)
+            if not filename:
+                return
+            if not filename.lower().endswith(".jar"):
+                return
+            dest = os.path.join(self.mods_dir, filename)
+            file_upload.save(dest, overwrite=True)
+            self.up()
+        except Exception as e:
+            print(f"Error adding mod for {self.name}: {str(e)}")
+
+    def remove_mod_file(self, filename: str) -> None:
+        try:
+            fp = os.path.join(self.mods_dir, filename)
+            if os.path.exists(fp) and os.path.isfile(fp):
+                os.remove(fp)
+                self.up()
+        except Exception as e:
+            print(f"Error removing mod {filename} for {self.name}: {str(e)}")

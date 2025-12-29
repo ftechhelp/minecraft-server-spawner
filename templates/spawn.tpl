@@ -42,6 +42,12 @@
             $('#actionModalText').text('Properties are updating and server is restarting. Please Wait...');
             $('#actionModal').toggleClass('is-active');
         });
+
+        $('#replaceModsButton').click(() => 
+        {
+            $('#actionModalText').text('Uploading mods and restarting server. Please Wait...');
+            $('#actionModal').toggleClass('is-active');
+        });
         
         // File input change handler
         $('.file-input').on('change', function() 
@@ -122,31 +128,7 @@
                                     <h4 class="subtitle is-4">Loaded Mods:</h4>
                                 </td>
                                 <td>
-                                    <h4 class="subtitle is-4">{{len(spawn.mods)}}</h4>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <h4 class="subtitle is-4">Pending Mods to Remove:</h4>
-                                </td>
-                                <td>
-                                    %if len(spawn.unloadedRemovedMods) > 0:
-                                        <h4 class="subtitle is-4 has-text-warning">{{len(spawn.unloadedRemovedMods)}}</h4>
-                                    %else:
-                                        <h4 class="subtitle is-4">{{len(spawn.unloadedRemovedMods)}}</h4>
-                                    %end
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <h4 class="subtitle is-4">Pending Mods to Add:</h4>
-                                </td>
-                                <td>
-                                    %if len(spawn.unloadedAddedMods) > 0:
-                                        <h4 class="subtitle is-4 has-text-warning">{{len(spawn.unloadedAddedMods)}}</h4>
-                                    %else:
-                                        <h4 class="subtitle is-4">{{len(spawn.unloadedAddedMods)}}</h4>
-                                    %end
+                                    <h4 class="subtitle is-4">{{len(mods)}}</h4>
                                 </td>
                             </tr>
                         </tbody>
@@ -169,64 +151,66 @@
             </footer>
         </div>
         <label class="label">Mods</label>
-        %for mod in spawn.virtualMods:
+        %if len(mods) == 0:
+        <p class="has-text-grey">No mods found in data/mods.</p>
+        %else:
+        %for mod in mods:
         <form action="/spawn/{{spawn.name}}/mods/delete" method="post">
             <div class="field has-addons p-1">
                 <div class="control is-expanded">
-                    <input class="input" type="text" name="mod" placeholder="Link to mod" value="{{mod}}" readonly>
+                    <input class="input" type="text" name="mod" value="{{mod}}" readonly>
                 </div>
                 <div class="control">
-                    <button class="button is-danger">
-                        Remove
-                    </button>
+                    <button class="button is-danger">Delete</button>
                 </div>
             </div>
         </form>
         %end
-        <form action="/spawn/{{spawn.name}}/mods/upload" method="post" enctype="multipart/form-data">
+        %end
+
+        <!-- Replace entire mods folder by uploading a local folder -->
+        <form action="/spawn/{{spawn.name}}/mods/replace" method="post" enctype="multipart/form-data">
             <div class="field has-addons pb-3">
                 <div class="control is-expanded">
                     <div class="file has-name is-fullwidth">
                         <label class="file-label">
-                            <input class="file-input" type="file" name="mods" accept=".zip,application/zip,application/x-zip,application/x-zip-compressed" />
+                            <input class="file-input" type="file" name="mods" multiple webkitdirectory directory accept=".jar" />
                             <span class="file-cta">
                                 <span class="file-icon">
-                                    <i class="fas fa-upload"></i>
+                                    <i class="fas fa-folder-open"></i>
                                 </span>
-                                <span class="file-label"> Choose zip file </span>
+                                <span class="file-label"> Choose mods folder </span>
+                            </span>
+                            <span class="file-name" id="file-name-display"> No folder selected </span>
+                        </label>
+                    </div>
+                </div>
+                <div class="control">
+                    <button type="submit" id="replaceModsButton" class="button is-primary">
+                        <span class="icon"><i class="fas fa-sync"></i></span>
+                        <span>Replace Mods</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Add single mod file -->
+        <form action="/spawn/{{spawn.name}}/mods/add-file" method="post" enctype="multipart/form-data">
+            <div class="field has-addons p-1">
+                <div class="control is-expanded">
+                    <div class="file has-name is-fullwidth">
+                        <label class="file-label">
+                            <input class="file-input" type="file" name="mod" accept=".jar" />
+                            <span class="file-cta">
+                                <span class="file-icon"><i class="fas fa-upload"></i></span>
+                                <span class="file-label"> Choose mod (.jar) </span>
                             </span>
                             <span class="file-name" id="file-name-display"> No file selected </span>
                         </label>
                     </div>
                 </div>
                 <div class="control">
-                    <button type="submit" class="button is-primary">
-                        <span class="icon">
-                            <i class="fas fa-upload"></i>
-                        </span>
-                        <span>Upload</span>
-                    </button>
-                </div>
-            </div>
-        </form>
-        <form action="/spawn/{{spawn.name}}/mods/add" method="post">
-            <div class="field has-addons p-1">
-                <div class="control is-expanded">
-                    <input class="input" type="text" name="mod" placeholder="Link to mod" value="">
-                </div>
-                <div class="control">
-                    <button class="button is-info">
-                        Add
-                    </button>
-                </div>
-            </div>
-        </form>
-        <form action="/spawn/{{spawn.name}}/mods/sync" method="post">
-            <div class="field has-addons p-1">
-                <div class="control is-expanded">
-                    <button class="button is-primary" id="modsSyncButton">
-                        Sync
-                    </button>
+                    <button class="button is-info">Add Mod</button>
                 </div>
             </div>
         </form>
