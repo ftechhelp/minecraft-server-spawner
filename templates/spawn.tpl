@@ -237,6 +237,98 @@
                 </div>
             </div>
         </form>
+
+        <!-- Backups Section -->
+        <label class="label">Backups</label>
+        <form action="/spawn/{{spawn.name}}/backup/create" method="post">
+            <div class="field p-1">
+                <button type="submit" class="button is-success is-fullwidth">
+                    <span class="icon"><i class="fas fa-save"></i></span>
+                    <span>Create Backup Now</span>
+                </button>
+            </div>
+        </form>
+
+        <!-- Backup Settings -->
+        <label class="label">Backup Schedule & Retention</label>
+        <form action="/spawn/{{spawn.name}}/backup/settings" method="post">
+            <div class="field">
+                <label class="checkbox">
+                    <input type="checkbox" name="daily_backup_enabled" %if spawn.backup_settings.get('daily_backup_enabled') %}checked%end %>>
+                    Enable daily automated backups
+                </label>
+            </div>
+
+            <div class="columns">
+                <div class="column is-6">
+                    <label class="label is-small">Backup Time (24h)</label>
+                    <div class="field has-addons">
+                        <div class="control is-expanded">
+                            <input class="input" type="number" name="daily_backup_hour" min="0" max="23" value="{{spawn.backup_settings.get('daily_backup_hour', 2)}}" placeholder="Hour (0-23)">
+                        </div>
+                        <div class="control is-expanded">
+                            <input class="input" type="number" name="daily_backup_minute" min="0" max="59" value="{{spawn.backup_settings.get('daily_backup_minute', 0)}}" placeholder="Minute (0-59)">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="column is-6">
+                    <label class="label is-small">Keep Backups For (days)</label>
+                    <div class="control">
+                        <input class="input" type="number" name="retention_days" min="1" value="{{spawn.backup_settings.get('retention_days', 7)}}" placeholder="Days">
+                    </div>
+                </div>
+            </div>
+
+            <div class="control">
+                <button type="submit" class="button is-info is-fullwidth">Save Backup Settings</button>
+            </div>
+
+            %if spawn.backup_settings.get('last_backup_timestamp'):
+            <div class="content mt-3">
+                <small class="has-text-grey">Last backup: {{spawn.backup_settings.get('last_backup_timestamp', 'Never')}}</small>
+            </div>
+            %end
+        </form>
+
+        <!-- Backup List -->
+        %if len(spawn.list_backups()) == 0:
+        <p class="has-text-grey mt-3">No backups found.</p>
+        %else:
+        <label class="label mt-5">Existing Backups</label>
+        <div class="box p-3">
+            %for backup in spawn.list_backups():
+            <div class="level is-mobile mb-3 pb-3" style="border-bottom: 1px solid #dbdbdb;">
+                <div class="level-left">
+                    <div class="level-item">
+                        <div>
+                            <p class="heading">{{backup['name']}}</p>
+                            <p class="title is-6">{{backup['timestamp']}} ({{backup['size_mb']}} MB)</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="level-right">
+                    <div class="level-item">
+                        <form action="/spawn/{{spawn.name}}/backup/restore/{{backup['name']}}" method="post" style="display: inline;">
+                            <button type="submit" class="button is-small is-info" onclick="return confirm('Restore this backup? Current world will be replaced.');">
+                                <span class="icon is-small"><i class="fas fa-undo"></i></span>
+                                <span>Restore</span>
+                            </button>
+                        </form>
+                    </div>
+                    <div class="level-item">
+                        <form action="/spawn/{{spawn.name}}/backup/delete/{{backup['name']}}" method="post" style="display: inline;">
+                            <button type="submit" class="button is-small is-danger" onclick="return confirm('Delete this backup?');">
+                                <span class="icon is-small"><i class="fas fa-trash"></i></span>
+                                <span>Delete</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            %end
+        </div>
+        %end
     </div>
     <div class="column is-8">
         <article class="message">

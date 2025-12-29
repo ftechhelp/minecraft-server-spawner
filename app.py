@@ -1,7 +1,9 @@
 from bottle import get, post, run, template, request, redirect, BaseRequest
 from utils.spawner import Spawner
+from utils.backup_scheduler import backup_scheduler
 from dotenv import load_dotenv
 import os
+import atexit
 
 load_dotenv()
 
@@ -12,6 +14,10 @@ BaseRequest.MEMFILE_MAX = 512 * 1024 * 1024
 spawner = Spawner()
 spawner.loadSpawns()
 spawner.recreate_all_spawns_once()
+
+# Start backup scheduler
+backup_scheduler.start(spawner)
+atexit.register(backup_scheduler.stop)
 
 @get('/')
 def index():
@@ -126,6 +132,41 @@ def send_console_command(name):
     redirect(f"/spawn/{name}")
 
 
+# --- Backup Management Routes ---
+@post('/spawn/<name>/backup/create')
+def create_backup(name):
+    spawn = spawner.spawns[name]
+    success, message, backup_file = spawn.create_backup()
+    # Redirect back to spawn page (backup creation happens in background)
+    redirect(f"/spawn/{name}")
+
+@post('/spawn/<name>/backup/restore/<backup_name>')
+def restore_backup(name, backup_name):
+    spawn = spawner.spawns[name]
+    success, message = spawn.restore_backup(backup_name)
+    redirect(f"/spawn/{name}")
+
+@post('/spawn/<name>/backup/delete/<backup_name>')
+def delete_backup(name, backup_name):
+    spawn = spawner.spawns[name]
+    success, message = spawn.delete_backup(backup_name)
+    redirect(f"/spawn/{name}")
+
+@post('/spawn/<name>/backup/settings')
+def update_backup_settings(name):
+    spawn = spawner.spawns[name]
+    daily_enabled = request.POST.daily_backup_enabled == 'on'
+    hour = int(request.POST.daily_backup_hour) if request.POST.daily_backup_hour else 2
+    minute = int(request.POST.daily_backup_minute) if request.POST.daily_backup_minute else 0
+    retention_days = int(request.POST.retention_days) if request.POST.retention_days else 7
+    
+    success, message = spawn.update_backup_settings(
+        daily_enabled=daily_enabled,
+        hour=hour,
+        minute=minute,
+        retention_days=retention_days
+    )
+    redirect(f"/spawn/{name}")
 
 
 run(host='0.0.0.0', port=8888, reloader=True, debug=True)
