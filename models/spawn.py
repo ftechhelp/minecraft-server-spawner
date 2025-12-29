@@ -11,8 +11,9 @@ class Spawn:
 
 
     def __init__(self, name: str, port: int, volume: str, type: str, minecraft_version: str, forge_version: str, mods: list) -> None:
+        self.base_dir: str = os.environ.get("SPAWNS_DIR", "./spawns")
         self.name: str = name
-        self.directory: str = f"./spawns/{self.name}"
+        self.directory: str = os.path.join(self.base_dir, self.name)
         self.volume: str = volume
         self.port: int = port
         self.type: str = type
@@ -23,7 +24,7 @@ class Spawn:
         self.unloadedRemovedMods: list = []
         self.unloadedAddedMods: list = []
         self.server_properties: str = ""
-        self.docker_compose_file: str = f"{self.directory}/docker-compose.yml"
+        self.docker_compose_file: str = os.path.join(self.directory, "docker-compose.yml")
 
         self.__updateContainerInformation()
         self.__create_directory()
