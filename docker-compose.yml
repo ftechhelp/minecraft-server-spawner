@@ -8,10 +8,10 @@ services:
     privileged: true
     ports:
       - "8888:8888"  # Web interface
+      - "25565-25665:25565-25665"  # Minecraft server port range
     volumes:
       - ./spawns:/app/spawns  # Persistent storage for Minecraft server data
     environment:
-      - CF_API_KEY=$2a$10$5fq3KVSx1ZTXKgfgIL6RMuCLQRMtCHaV8HkYJvmprSvIGfiC8X75.  # Replace with your actual CurseForge API key
       - SPAWNS_DIR=/app/spawns  # Path used by the app to read/write spawn definitions
       - PYTHONUNBUFFERED=1
       - DOCKER_HOST=unix:///var/run/docker.sock
