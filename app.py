@@ -155,7 +155,8 @@ def delete_backup(name, backup_name):
 @post('/spawn/<name>/backup/settings')
 def update_backup_settings(name):
     spawn = spawner.spawns[name]
-    daily_enabled = request.POST.daily_backup_enabled == 'on'
+    # Handle checkbox - it's only present in POST if checked
+    daily_enabled = 'daily_backup_enabled' in request.POST
     hour = int(request.POST.daily_backup_hour) if request.POST.daily_backup_hour else 2
     minute = int(request.POST.daily_backup_minute) if request.POST.daily_backup_minute else 0
     retention_days = int(request.POST.retention_days) if request.POST.retention_days else 7
