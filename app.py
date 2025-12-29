@@ -40,6 +40,7 @@ def spawn():
 def view_spawn(name):
     spawn = spawner.spawns[name]
     spawn.refreshContainerInformation()
+    spawn.reload_backup_settings()
     return template('./templates/spawn', spawn=spawn, mods=spawn.list_mods())
 
 @post('/spawn/<name>/recreate')
