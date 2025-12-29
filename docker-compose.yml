@@ -8,6 +8,7 @@ services:
     privileged: true
     ports:
       - "8888:8888"  # Web interface
+      - "25565-25665:25565-25665"  # Minecraft server port range
     volumes:
       - ./spawns:/app/spawns  # Persistent storage for Minecraft server data
     environment:
