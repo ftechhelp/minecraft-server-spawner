@@ -22,10 +22,23 @@
         });
 
         $('#deleteButton').click(() => {
-            $('#actionModalText').text('Server is deleting. Please Wait...');
-            $('#actionModal').toggleClass('is-active');
+            $('#deleteConfirmModal').toggleClass('is-active');
+            return false; // Prevent form submission
         });
 
+        $('#confirmDeleteButton').click(() => {
+            $('#deleteConfirmModal').toggleClass('is-active');
+            $('#actionModalText').text('Server is deleting. Please Wait...');
+            $('#actionModal').toggleClass('is-active');
+            $('#deleteForm').submit();
+        });
+
+        $('#cancelDeleteButton').click(() => {
+            $('#deleteConfirmModal').removeClass('is-active');
+        });
+        $(document).on('click', '.cancel-delete-btn', function() {
+            $('#deleteConfirmModal').removeClass('is-active');
+        });
         $('#refreshLogButton').click(() => 
         {
             $('#refreshLogButton').toggleClass('is-loading');
@@ -155,8 +168,8 @@
                 <form class="card-footer-item" action="/spawn/{{spawn.name}}/stop" method="post">
                     <button id="stopButton" class="">Stop</button>
                 </form>
-                <form class="card-footer-item" action="/spawn/{{spawn.name}}/delete" method="post">
-                    <button id="deleteButton" class="">Delete</button>
+                <form class="card-footer-item" id="deleteForm" action="/spawn/{{spawn.name}}/delete" method="post">
+                    <button id="deleteButton" type="button" class="button is-danger is-fullwidth">Delete</button>
                 </form>
             </footer>
         </div>
@@ -267,6 +280,48 @@
                 </div>
             </article>
         </form>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal" id="deleteConfirmModal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head has-background-danger">
+            <p class="modal-card-title has-text-white">
+                <span class="icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </span>
+                <span>Delete Server Confirmation</span>
+            </p>
+            <button class="delete cancel-delete-btn" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <article class="message is-danger">
+                <div class="message-header">
+                    <p>⚠️ WARNING: This action cannot be undone!</p>
+                </div>
+                <div class="message-body">
+                    <p class="has-text-weight-bold mb-3">You are about to permanently delete:</p>
+                    <ul class="ml-5">
+                        <li>✗ The entire server container</li>
+                        <li>✗ All world data and player progress</li>
+                        <li>✗ All mods and configurations</li>
+                        <li>✗ Server properties and settings</li>
+                    </ul>
+                    <p class="mt-4 has-text-weight-bold">Server: <span class="has-text-danger">{{spawn.name}}</span></p>
+                </div>
+            </article>
+        </section>
+        <footer class="modal-card-foot">
+            <button class="button cancel-delete-btn">Cancel</button>
+            <button class="button is-danger" id="confirmDeleteButton">
+                <span class="icon">
+                    <i class="fas fa-trash"></i>
+                </span>
+                <span>Yes, Delete Permanently</span>
+            </button>
+        </footer>
     </div>
 </div>
 
