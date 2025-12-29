@@ -1,12 +1,17 @@
-from bottle import get, post, run, template, request, redirect
+from bottle import get, post, run, template, request, redirect, BaseRequest
 from utils.spawner import Spawner
 from dotenv import load_dotenv
 import os
 
 load_dotenv()
 
+# Allow large multi-file uploads (e.g., a folder of .jar mods)
+# Default is ~100KB; increase to 512MB to support mod folder uploads
+BaseRequest.MEMFILE_MAX = 512 * 1024 * 1024
+
 spawner = Spawner()
 spawner.loadSpawns()
+spawner.recreate_all_spawns_once()
 
 @get('/')
 def index():
@@ -27,7 +32,9 @@ def spawn():
 
 @get('/spawn/<name>')
 def view_spawn(name):
-    return template('./templates/spawn', spawn=spawner.spawns[name])
+    spawn = spawner.spawns[name]
+    spawn.refreshContainerInformation()
+    return template('./templates/spawn', spawn=spawn, mods=spawn.list_mods())
 
 @post('/spawn/<name>/recreate')
 def recreate_spawn(name):
@@ -67,28 +74,42 @@ def download_logs(name):
 @post('/spawn/<name>/mods/delete')
 def delete_mod(name):
     spawn = spawner.spawns[name]
-    mod = request.POST.mod.strip()
-    spawn.removeMod(mod)
+    mod_filename = request.POST.mod.strip()
+    spawn.remove_mod_file(mod_filename)
     redirect(f"/spawn/{name}")
 
-@post('/spawn/<name>/mods/add')
-def add_mod(name):
+@post('/spawn/<name>/mods/add-file')
+def add_mod_file(name):
     spawn = spawner.spawns[name]
-    mod = request.POST.mod.strip()
-    spawn.addMod(mod)
+    mod_upload = request.files.get('mod')
+    if mod_upload:
+        spawn.add_mod_file(mod_upload)
     redirect(f"/spawn/{name}")
 
-@post('/spawn/<name>/mods/sync')
-def sync_mods(name):
+@post('/spawn/<name>/mods/replace')
+def replace_mods(name):
     spawn = spawner.spawns[name]
-    spawn.syncMods()
-    spawner.create_or_modify_spawn(name=spawn.name, new_port=spawn.port, new_type=spawn.type, new_minecraftVersion=spawn.minecraft_version, new_forgeVersion=spawn.forge_version, mods=spawn.mods)
+    print(f"[replace_mods route] Processing replace for {name}")
+    try:
+        uploads = request.files.getall('mods')
+        print(f"[replace_mods route] Got {len(uploads)} files via getall")
+    except Exception as e:
+        print(f"[replace_mods route] getall failed: {e}, trying get")
+        up = request.files.get('mods')
+        uploads = [up] if up else []
+        print(f"[replace_mods route] Got {len(uploads)} files via get")
+    
+    if not uploads:
+        print(f"[replace_mods route] WARNING: No files received!")
+    
+    spawn.replace_mods_from_uploads(uploads)
     redirect(f"/spawn/{name}")
 
+# Deprecated: zip-based import; kept for compatibility if still used
 @post('/spawn/<name>/mods/upload')
 def upload_mod(name):
     spawn = spawner.spawns[name]
-    spawn.uploadMods(request.files.get('mods'))
+    # No-op or translate zip uploads in future
     redirect(f"/spawn/{name}")
 
 

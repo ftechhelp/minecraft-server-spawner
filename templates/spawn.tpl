@@ -22,10 +22,23 @@
         });
 
         $('#deleteButton').click(() => {
-            $('#actionModalText').text('Server is deleting. Please Wait...');
-            $('#actionModal').toggleClass('is-active');
+            $('#deleteConfirmModal').toggleClass('is-active');
+            return false; // Prevent form submission
         });
 
+        $('#confirmDeleteButton').click(() => {
+            $('#deleteConfirmModal').toggleClass('is-active');
+            $('#actionModalText').text('Server is deleting. Please Wait...');
+            $('#actionModal').toggleClass('is-active');
+            $('#deleteForm').submit();
+        });
+
+        $('#cancelDeleteButton').click(() => {
+            $('#deleteConfirmModal').removeClass('is-active');
+        });
+        $(document).on('click', '.cancel-delete-btn', function() {
+            $('#deleteConfirmModal').removeClass('is-active');
+        });
         $('#refreshLogButton').click(() => 
         {
             $('#refreshLogButton').toggleClass('is-loading');
@@ -40,6 +53,12 @@
         $('#updateServerPropertiesButton').click(() => 
         {
             $('#actionModalText').text('Properties are updating and server is restarting. Please Wait...');
+            $('#actionModal').toggleClass('is-active');
+        });
+
+        $('#replaceModsButton').click(() => 
+        {
+            $('#actionModalText').text('Uploading mods and restarting server. Please Wait...');
             $('#actionModal').toggleClass('is-active');
         });
         
@@ -122,33 +141,19 @@
                                     <h4 class="subtitle is-4">Loaded Mods:</h4>
                                 </td>
                                 <td>
-                                    <h4 class="subtitle is-4">{{len(spawn.mods)}}</h4>
+                                    <h4 class="subtitle is-4">{{len(mods)}}</h4>
                                 </td>
                             </tr>
+                            %if len(spawn.pending_mod_deletions) > 0:
                             <tr>
                                 <td>
-                                    <h4 class="subtitle is-4">Pending Mods to Remove:</h4>
+                                    <h4 class="subtitle is-4">Pending Deletions:</h4>
                                 </td>
                                 <td>
-                                    %if len(spawn.unloadedRemovedMods) > 0:
-                                        <h4 class="subtitle is-4 has-text-warning">{{len(spawn.unloadedRemovedMods)}}</h4>
-                                    %else:
-                                        <h4 class="subtitle is-4">{{len(spawn.unloadedRemovedMods)}}</h4>
-                                    %end
+                                    <h4 class="subtitle is-4 has-text-warning">{{len(spawn.pending_mod_deletions)}} (restart required)</h4>
                                 </td>
                             </tr>
-                            <tr>
-                                <td>
-                                    <h4 class="subtitle is-4">Pending Mods to Add:</h4>
-                                </td>
-                                <td>
-                                    %if len(spawn.unloadedAddedMods) > 0:
-                                        <h4 class="subtitle is-4 has-text-warning">{{len(spawn.unloadedAddedMods)}}</h4>
-                                    %else:
-                                        <h4 class="subtitle is-4">{{len(spawn.unloadedAddedMods)}}</h4>
-                                    %end
-                                </td>
-                            </tr>
+                            %end
                         </tbody>
                     </table>
                 </p>
@@ -163,70 +168,72 @@
                 <form class="card-footer-item" action="/spawn/{{spawn.name}}/stop" method="post">
                     <button id="stopButton" class="">Stop</button>
                 </form>
-                <form class="card-footer-item" action="/spawn/{{spawn.name}}/delete" method="post">
-                    <button id="deleteButton" class="">Delete</button>
+                <form class="card-footer-item" id="deleteForm" action="/spawn/{{spawn.name}}/delete" method="post">
+                    <button id="deleteButton" type="button" class="button is-danger is-fullwidth">Delete</button>
                 </form>
             </footer>
         </div>
         <label class="label">Mods</label>
-        %for mod in spawn.virtualMods:
+        %if len(mods) == 0:
+        <p class="has-text-grey">No mods found in data/mods.</p>
+        %else:
+        %for mod in mods:
         <form action="/spawn/{{spawn.name}}/mods/delete" method="post">
             <div class="field has-addons p-1">
                 <div class="control is-expanded">
-                    <input class="input" type="text" name="mod" placeholder="Link to mod" value="{{mod}}" readonly>
+                    <input class="input" type="text" name="mod" value="{{mod}}" readonly>
                 </div>
                 <div class="control">
-                    <button class="button is-danger">
-                        Remove
-                    </button>
+                    <button class="button is-danger">Delete</button>
                 </div>
             </div>
         </form>
         %end
-        <form action="/spawn/{{spawn.name}}/mods/upload" method="post" enctype="multipart/form-data">
+        %end
+
+        <!-- Replace entire mods folder by uploading a local folder -->
+        <form action="/spawn/{{spawn.name}}/mods/replace" method="post" enctype="multipart/form-data">
             <div class="field has-addons pb-3">
                 <div class="control is-expanded">
                     <div class="file has-name is-fullwidth">
                         <label class="file-label">
-                            <input class="file-input" type="file" name="mods" accept=".zip,application/zip,application/x-zip,application/x-zip-compressed" />
+                            <input class="file-input" type="file" name="mods" multiple webkitdirectory directory accept=".jar" />
                             <span class="file-cta">
                                 <span class="file-icon">
-                                    <i class="fas fa-upload"></i>
+                                    <i class="fas fa-folder-open"></i>
                                 </span>
-                                <span class="file-label"> Choose zip file </span>
+                                <span class="file-label"> Choose mods folder </span>
+                            </span>
+                            <span class="file-name" id="file-name-display"> No folder selected </span>
+                        </label>
+                    </div>
+                </div>
+                <div class="control">
+                    <button type="submit" id="replaceModsButton" class="button is-primary">
+                        <span class="icon"><i class="fas fa-sync"></i></span>
+                        <span>Replace Mods</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Add single mod file -->
+        <form action="/spawn/{{spawn.name}}/mods/add-file" method="post" enctype="multipart/form-data">
+            <div class="field has-addons p-1">
+                <div class="control is-expanded">
+                    <div class="file has-name is-fullwidth">
+                        <label class="file-label">
+                            <input class="file-input" type="file" name="mod" accept=".jar" />
+                            <span class="file-cta">
+                                <span class="file-icon"><i class="fas fa-upload"></i></span>
+                                <span class="file-label"> Choose mod (.jar) </span>
                             </span>
                             <span class="file-name" id="file-name-display"> No file selected </span>
                         </label>
                     </div>
                 </div>
                 <div class="control">
-                    <button type="submit" class="button is-primary">
-                        <span class="icon">
-                            <i class="fas fa-upload"></i>
-                        </span>
-                        <span>Upload</span>
-                    </button>
-                </div>
-            </div>
-        </form>
-        <form action="/spawn/{{spawn.name}}/mods/add" method="post">
-            <div class="field has-addons p-1">
-                <div class="control is-expanded">
-                    <input class="input" type="text" name="mod" placeholder="Link to mod" value="">
-                </div>
-                <div class="control">
-                    <button class="button is-info">
-                        Add
-                    </button>
-                </div>
-            </div>
-        </form>
-        <form action="/spawn/{{spawn.name}}/mods/sync" method="post">
-            <div class="field has-addons p-1">
-                <div class="control is-expanded">
-                    <button class="button is-primary" id="modsSyncButton">
-                        Sync
-                    </button>
+                    <button class="button is-info">Add Mod</button>
                 </div>
             </div>
         </form>
@@ -273,6 +280,48 @@
                 </div>
             </article>
         </form>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal" id="deleteConfirmModal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head has-background-danger">
+            <p class="modal-card-title has-text-white">
+                <span class="icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </span>
+                <span>Delete Server Confirmation</span>
+            </p>
+            <button class="delete cancel-delete-btn" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <article class="message is-danger">
+                <div class="message-header">
+                    <p>⚠️ WARNING: This action cannot be undone!</p>
+                </div>
+                <div class="message-body">
+                    <p class="has-text-weight-bold mb-3">You are about to permanently delete:</p>
+                    <ul class="ml-5">
+                        <li>✗ The entire server container</li>
+                        <li>✗ All world data and player progress</li>
+                        <li>✗ All mods and configurations</li>
+                        <li>✗ Server properties and settings</li>
+                    </ul>
+                    <p class="mt-4 has-text-weight-bold">Server: <span class="has-text-danger">{{spawn.name}}</span></p>
+                </div>
+            </article>
+        </section>
+        <footer class="modal-card-foot">
+            <button class="button cancel-delete-btn">Cancel</button>
+            <button class="button is-danger" id="confirmDeleteButton">
+                <span class="icon">
+                    <i class="fas fa-trash"></i>
+                </span>
+                <span>Yes, Delete Permanently</span>
+            </button>
+        </footer>
     </div>
 </div>
 
