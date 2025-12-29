@@ -56,7 +56,8 @@ class Spawner:
     
     def loadSpawns(self):
         self.spawns = {}
-        spawn_folder = "./spawns"
+        spawn_folder = os.environ.get("SPAWNS_DIR", "./spawns")
+        os.makedirs(spawn_folder, exist_ok=True)  # Ensure the spawn directory exists to avoid startup failures
         spawn_names = os.listdir(spawn_folder)
 
         for name in spawn_names:
