@@ -303,6 +303,10 @@ class Spawn:
             print(f"Error loading backup settings for {self.name}: {str(e)}")
         return default_settings
 
+    def reload_backup_settings(self) -> None:
+        """Reload backup settings from file into memory"""
+        self.backup_settings = self.__load_backup_settings()
+
     def __save_backup_settings(self) -> None:
         """Save backup settings to file"""
         try:

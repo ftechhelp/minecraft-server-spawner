@@ -20,7 +20,7 @@
 
         $('#deleteButton').click(() => {
             $('#deleteConfirmModal').toggleClass('is-active');
-            return false; // Prevent form submission
+            return false;
         });
 
         $('#confirmDeleteButton').click(() => {
@@ -55,10 +55,9 @@
             showLoadingModal('Uploading mods and restarting server. Please wait...');
         });
         
-        // File input change handler
         $('.file-input').on('change', function() 
         {
-            const $fileNameDisplay = $('#file-name-display');
+            const $fileNameDisplay = $(this).closest('.file-label').find('.file-name');
             
             if (this.files && this.files[0]) 
             {
@@ -72,300 +71,294 @@
     });
 </script>
 
-<div class="columns m-5">
-    <div class="column is-4">
-        <div class="card">
-            <div class="card-content">
-                <p class="title">
-                    <table class="table">
+<div class="container is-fluid p-4">
+    <!-- Server Info Card -->
+    <div class="columns is-multiline">
+        <div class="column is-12-mobile is-6-tablet is-4-desktop">
+            <div class="card">
+                <div class="card-content">
+                    <p class="title is-5">Server Info</p>
+                    <table class="table is-narrow is-fullwidth">
                         <tbody>
                             <tr>
-                                <td><h4 class="subtitle is-4">Name:</h4></td>
-                                <td><h4 class="subtitle is-4">{{spawn.name}}</h4></td>
+                                <td><strong>Name:</strong></td>
+                                <td>{{spawn.name}}</td>
                             </tr>
                             <tr>
-                                <td>
-                                    <h4 class="subtitle is-4">Status:</h4>
-                                </td>
+                                <td><strong>Status:</strong></td>
                                 <td>
                                     %if spawn.get_status() == "running": 
-                                        <h4 class="subtitle is-4 has-text-success">{{spawn.get_status()}}</h4>
+                                        <span class="tag is-success">{{spawn.get_status()}}</span>
                                     %elif spawn.get_status() in ["created", "restarting", "removing", "paused", "exited"]:
-                                        <h4 class="subtitle is-4 has-text-warning">{{spawn.get_status()}}</h4>
+                                        <span class="tag is-warning">{{spawn.get_status()}}</span>
                                     %else:
-                                        <h4 class="subtitle is-4 has-text-danger">{{spawn.get_status()}}</h4>
+                                        <span class="tag is-danger">{{spawn.get_status()}}</span>
                                     %end
                                 </td>
                             </tr>
                             <tr>
-                                <td>
-                                    <h4 class="subtitle is-4">Port:</h4>
-                                </td>
-                                <td>
-                                    <h4 class="subtitle is-4">{{spawn.port}}</h4>
-                                </td>
+                                <td><strong>Port:</strong></td>
+                                <td>{{spawn.port}}</td>
                             </tr>
                             <tr>
-                                <td>
-                                    <h4 class="subtitle is-4">Type:</h4>
-                                </td>
-                                <td>
-                                    <h4 class="subtitle is-4">{{spawn.type}}</h4>
-                                </td>
+                                <td><strong>Type:</strong></td>
+                                <td>{{spawn.type}}</td>
                             </tr>
                             <tr>
-                                <td>
-                                    <h4 class="subtitle is-4">Minecraft Version:</h4>
-                                </td>
-                                <td>
-                                    <h4 class="subtitle is-4">{{spawn.minecraft_version}}</h4>
-                                </td>
+                                <td><strong>MC Version:</strong></td>
+                                <td>{{spawn.minecraft_version}}</td>
                             </tr>
                             <tr>
-                                <td>
-                                    <h4 class="subtitle is-4">Forge Version:</h4>
-                                </td>
-                                <td>
-                                    <h4 class="subtitle is-4">{{spawn.forge_version}}</h4>
-                                </td>
+                                <td><strong>Forge:</strong></td>
+                                <td>{{spawn.forge_version}}</td>
                             </tr>
                             <tr>
-                                <td>
-                                    <h4 class="subtitle is-4">Loaded Mods:</h4>
-                                </td>
-                                <td>
-                                    <h4 class="subtitle is-4">{{len(mods)}}</h4>
-                                </td>
+                                <td><strong>Loaded Mods:</strong></td>
+                                <td>{{len(mods)}}</td>
                             </tr>
                             %if len(spawn.pending_mod_deletions) > 0:
                             <tr>
-                                <td>
-                                    <h4 class="subtitle is-4">Pending Deletions:</h4>
-                                </td>
-                                <td>
-                                    <h4 class="subtitle is-4 has-text-warning">{{len(spawn.pending_mod_deletions)}} (restart required)</h4>
-                                </td>
+                                <td><strong>Pending Del:</strong></td>
+                                <td><span class="tag is-warning">{{len(spawn.pending_mod_deletions)}}</span></td>
                             </tr>
                             %end
                         </tbody>
                     </table>
-                </p>
+                </div>
+                <footer class="card-footer is-flex-wrap-wrap">
+                    <form class="card-footer-item is-flex-grow-1" action="/spawn/{{spawn.name}}/recreate" method="post">
+                        <button id="recreateButton" class="button is-info is-fullwidth">Re-create</button>
+                    </form>
+                    <form class="card-footer-item is-flex-grow-1" action="/spawn/{{spawn.name}}/start" method="post">
+                        <button id="startButton" class="button is-success is-fullwidth">Start</button>
+                    </form>
+                    <form class="card-footer-item is-flex-grow-1" action="/spawn/{{spawn.name}}/stop" method="post">
+                        <button id="stopButton" class="button is-warning is-fullwidth">Stop</button>
+                    </form>
+                    <form class="card-footer-item is-flex-grow-1" id="deleteForm" action="/spawn/{{spawn.name}}/delete" method="post">
+                        <button id="deleteButton" type="button" class="button is-danger is-fullwidth">Delete</button>
+                    </form>
+                </footer>
             </div>
-            <footer class="card-footer">
-                <form class="card-footer-item" action="/spawn/{{spawn.name}}/recreate" method="post">
-                    <button id="recreateButton" class="">Re-create</button>
-                </form>
-                <form class="card-footer-item" action="/spawn/{{spawn.name}}/start" method="post">
-                    <button id="startButton" class="">Start</button>
-                </form>
-                <form class="card-footer-item" action="/spawn/{{spawn.name}}/stop" method="post">
-                    <button id="stopButton" class="">Stop</button>
-                </form>
-                <form class="card-footer-item" id="deleteForm" action="/spawn/{{spawn.name}}/delete" method="post">
-                    <button id="deleteButton" type="button" class="button is-danger is-fullwidth">Delete</button>
-                </form>
-            </footer>
         </div>
-        <label class="label">Mods</label>
-        %if len(mods) == 0:
-        <p class="has-text-grey">No mods found in data/mods.</p>
-        %else:
-        %for mod in mods:
-        <form action="/spawn/{{spawn.name}}/mods/delete" method="post">
-            <div class="field has-addons p-1">
-                <div class="control is-expanded">
-                    <input class="input" type="text" name="mod" value="{{mod}}" readonly>
-                </div>
-                <div class="control">
-                    <button class="button is-danger">Delete</button>
-                </div>
-            </div>
-        </form>
-        %end
-        %end
 
-        <!-- Replace entire mods folder by uploading a local folder -->
-        <form action="/spawn/{{spawn.name}}/mods/replace" method="post" enctype="multipart/form-data">
-            <div class="field has-addons pb-3">
-                <div class="control is-expanded">
-                    <div class="file has-name is-fullwidth">
-                        <label class="file-label">
-                            <input class="file-input" type="file" name="mods" multiple webkitdirectory directory accept=".jar" />
-                            <span class="file-cta">
-                                <span class="file-icon">
-                                    <i class="fas fa-folder-open"></i>
-                                </span>
-                                <span class="file-label"> Choose mods folder </span>
-                            </span>
-                            <span class="file-name" id="file-name-display"> No folder selected </span>
-                        </label>
+        <!-- Mods Section -->
+        <div class="column is-12-mobile is-6-tablet is-4-desktop">
+            <div class="box">
+                <h2 class="title is-5">Mods ({{len(mods)}})</h2>
+                %if len(mods) == 0:
+                <p class="has-text-grey">No mods found.</p>
+                %else:
+                <div style="max-height: 250px; overflow-y: auto; border: 1px solid #dbdbdb; border-radius: 4px; padding: 0.5rem;">
+                %for mod in mods:
+                <form action="/spawn/{{spawn.name}}/mods/delete" method="post" class="mb-1">
+                    <div class="field is-grouped is-grouped-multiline mb-1">
+                        <div class="control is-expanded">
+                            <input class="input is-small" type="text" name="mod" value="{{mod}}" readonly>
+                        </div>
+                        <div class="control">
+                            <button class="button is-small is-danger">Delete</button>
+                        </div>
                     </div>
+                </form>
+                %end
                 </div>
-                <div class="control">
-                    <button type="submit" id="replaceModsButton" class="button is-primary">
+                %end
+
+                <form action="/spawn/{{spawn.name}}/mods/replace" method="post" enctype="multipart/form-data" class="mt-3">
+                    <div class="field mb-2">
+                        <label class="label is-small">Replace All Mods</label>
+                        <div class="file has-name is-fullwidth">
+                            <label class="file-label">
+                                <input class="file-input" type="file" name="mods" multiple webkitdirectory directory accept=".jar" />
+                                <span class="file-cta is-small">
+                                    <span class="file-icon"><i class="fas fa-folder-open"></i></span>
+                                    <span class="file-label">Choose folder</span>
+                                </span>
+                                <span class="file-name is-small">No folder selected</span>
+                            </label>
+                        </div>
+                    </div>
+                    <button type="submit" id="replaceModsButton" class="button is-primary is-fullwidth is-small">
                         <span class="icon"><i class="fas fa-sync"></i></span>
                         <span>Replace Mods</span>
                     </button>
-                </div>
-            </div>
-        </form>
+                </form>
 
-        <!-- Add single mod file -->
-        <form action="/spawn/{{spawn.name}}/mods/add-file" method="post" enctype="multipart/form-data">
-            <div class="field has-addons p-1">
-                <div class="control is-expanded">
-                    <div class="file has-name is-fullwidth">
-                        <label class="file-label">
-                            <input class="file-input" type="file" name="mod" accept=".jar" />
-                            <span class="file-cta">
-                                <span class="file-icon"><i class="fas fa-upload"></i></span>
-                                <span class="file-label"> Choose mod (.jar) </span>
-                            </span>
-                            <span class="file-name" id="file-name-display"> No file selected </span>
-                        </label>
+                <form action="/spawn/{{spawn.name}}/mods/add-file" method="post" enctype="multipart/form-data" class="mt-3">
+                    <div class="field mb-2">
+                        <label class="label is-small">Add Single Mod</label>
+                        <div class="file has-name is-fullwidth">
+                            <label class="file-label">
+                                <input class="file-input" type="file" name="mod" accept=".jar" />
+                                <span class="file-cta is-small">
+                                    <span class="file-icon"><i class="fas fa-upload"></i></span>
+                                    <span class="file-label">Choose mod</span>
+                                </span>
+                                <span class="file-name is-small">No file selected</span>
+                            </label>
+                        </div>
                     </div>
-                </div>
-                <div class="control">
-                    <button class="button is-info">Add Mod</button>
-                </div>
+                    <button class="button is-info is-fullwidth is-small">Add Mod</button>
+                </form>
             </div>
-        </form>
+        </div>
 
         <!-- Backups Section -->
-        <label class="label">Backups</label>
-        <form action="/spawn/{{spawn.name}}/backup/create" method="post" onsubmit="showLoadingModal('Creating backup. Please wait...');">
-            <div class="field p-1">
-                <button type="submit" class="button is-success is-fullwidth">
-                    <span class="icon"><i class="fas fa-save"></i></span>
-                    <span>Create Backup Now</span>
-                </button>
-            </div>
-        </form>
+        <div class="column is-12-mobile is-6-tablet is-4-desktop">
+            <div class="box">
+                <h2 class="title is-5">Backups</h2>
+                <form action="/spawn/{{spawn.name}}/backup/create" method="post" onsubmit="showLoadingModal('Creating backup. Please wait...');">
+                    <button type="submit" class="button is-success is-fullwidth mb-3">
+                        <span class="icon"><i class="fas fa-save"></i></span>
+                        <span>Create Backup</span>
+                    </button>
+                </form>
 
-        <!-- Backup Settings -->
-        <label class="label">Backup Schedule & Retention</label>
-        <form action="/spawn/{{spawn.name}}/backup/settings" method="post" onsubmit="showLoadingModal('Saving backup settings. Please wait...');">
-            <div class="field">
-                <label class="checkbox">
-                    <input type="checkbox" id="daily_backup_enabled" name="daily_backup_enabled" value="on" %if spawn.backup_settings.get('daily_backup_enabled') %}checked%end %>
-                    Enable daily automated backups
-                </label>
-            </div>
+                <h3 class="subtitle is-6">Schedule</h3>
+                <form action="/spawn/{{spawn.name}}/backup/settings" method="post" onsubmit="showLoadingModal('Saving settings. Please wait...');">
+                    <div class="field">
+                        <label class="checkbox is-small">
+                            %if spawn.backup_settings.get('daily_backup_enabled'):
+                            <input type="checkbox" id="daily_backup_enabled" name="daily_backup_enabled" value="on" checked>
+                            %else:
+                            <input type="checkbox" id="daily_backup_enabled" name="daily_backup_enabled" value="on">
+                            %end
+                            <span>Enable daily backups</span>
+                        </label>
+                    </div>
 
-            <div class="columns">
-                <div class="column is-6">
-                    <label class="label is-small">Backup Time (24h)</label>
-                    <div class="field has-addons">
+                    <label class="label is-small">Time</label>
+                    <div class="field is-grouped mb-2">
                         <div class="control is-expanded">
-                            <input class="input" type="number" name="daily_backup_hour" min="0" max="23" value="{{spawn.backup_settings.get('daily_backup_hour', 2)}}" placeholder="Hour (0-23)">
+                            <input class="input is-small" type="number" name="daily_backup_hour" min="0" max="23" value="{{spawn.backup_settings.get('daily_backup_hour', 2)}}" placeholder="HH">
                         </div>
                         <div class="control is-expanded">
-                            <input class="input" type="number" name="daily_backup_minute" min="0" max="59" value="{{spawn.backup_settings.get('daily_backup_minute', 0)}}" placeholder="Minute (0-59)">
+                            <input class="input is-small" type="number" name="daily_backup_minute" min="0" max="59" value="{{spawn.backup_settings.get('daily_backup_minute', 0)}}" placeholder="MM">
                         </div>
                     </div>
-                </div>
 
-                <div class="column is-6">
-                    <label class="label is-small">Keep Backups For (days)</label>
-                    <div class="control">
-                        <input class="input" type="number" name="retention_days" min="1" value="{{spawn.backup_settings.get('retention_days', 7)}}" placeholder="Days">
-                    </div>
-                </div>
-            </div>
-
-            <div class="control">
-                <button type="submit" class="button is-info is-fullwidth">Save Backup Settings</button>
-            </div>
-
-            %if spawn.backup_settings.get('last_backup_timestamp'):
-            <div class="content mt-3">
-                <small class="has-text-grey">Last backup: {{spawn.backup_settings.get('last_backup_timestamp', 'Never')}}</small>
-            </div>
-            %end
-        </form>
-
-        <!-- Backup List -->
-        %if len(spawn.list_backups()) == 0:
-        <p class="has-text-grey mt-3">No backups found.</p>
-        %else:
-        <label class="label mt-5">Existing Backups</label>
-        <div class="box p-3">
-            %for backup in spawn.list_backups():
-            <div class="level is-mobile mb-3 pb-3" style="border-bottom: 1px solid #dbdbdb;">
-                <div class="level-left">
-                    <div class="level-item">
-                        <div>
-                            <p class="heading">{{backup['name']}}</p>
-                            <p class="title is-6">{{backup['timestamp']}} ({{backup['size_mb']}} MB)</p>
+                    <label class="label is-small">Keep (days)</label>
+                    <div class="field mb-3">
+                        <div class="control is-expanded">
+                            <input class="input is-small" type="number" name="retention_days" min="1" value="{{spawn.backup_settings.get('retention_days', 7)}}" placeholder="Days">
                         </div>
                     </div>
+
+                    <button type="submit" class="button is-info is-fullwidth is-small">Save</button>
+                </form>
+
+                %if spawn.backup_settings.get('last_backup_timestamp'):
+                <div class="content mt-2">
+                    <small class="has-text-grey">Last: {{spawn.backup_settings.get('last_backup_timestamp')}}</small>
                 </div>
-                <div class="level-right">
-                    <div class="level-item">
-                        <form action="/spawn/{{spawn.name}}/backup/restore/{{backup['name']}}" method="post" style="display: inline;" onsubmit="if(!confirm('Restore this backup? Current world will be replaced.')) return false; showLoadingModal('Restoring backup. Please wait...');return true;">
-                            <button type="submit" class="button is-small is-info">
-                                <span class="icon is-small"><i class="fas fa-undo"></i></span>
-                                <span>Restore</span>
-                            </button>
-                        </form>
-                    </div>
-                    <div class="level-item">
-                        <form action="/spawn/{{spawn.name}}/backup/delete/{{backup['name']}}" method="post" style="display: inline;" onsubmit="if(!confirm('Delete this backup?')) return false; showLoadingModal('Deleting backup. Please wait...');return true;">
-                            <button type="submit" class="button is-small is-danger">
-                                <span class="icon is-small"><i class="fas fa-trash"></i></span>
-                                <span>Delete</span>
-                            </button>
-                        </form>
-                    </div>
-                </div>
+                %end
             </div>
-            %end
         </div>
-        %end
     </div>
-    <div class="column is-8">
-        <article class="message">
-            <div class="message-header">
-                <p class="subtitle is-4">Logs</p>
-                <div class="is-4 is-flex is-align-items-flex-end">
-                    <form action="/spawn/{{spawn.name}}/refresh" method="post">
-                        <button id="refreshLogButton" class="button is-link">Refresh</button>
-                    </form>
-                    <a href="/spawn/{{spawn.name}}/logs" class="button is-ghost ml-2">Full Logs</a>
+
+    <!-- Logs Section -->
+    <div class="columns is-multiline mt-2">
+        <div class="column is-12-mobile is-12-tablet is-6-desktop">
+            <div class="box">
+                <div class="level mb-3">
+                    <div class="level-left">
+                        <div class="level-item">
+                            <h2 class="title is-5">Logs</h2>
+                        </div>
+                    </div>
+                    <div class="level-right">
+                        <div class="level-item">
+                            <form action="/spawn/{{spawn.name}}/refresh" method="post" style="display: inline;">
+                                <button id="refreshLogButton" class="button is-small is-link">Refresh</button>
+                            </form>
+                        </div>
+                        <div class="level-item">
+                            <a href="/spawn/{{spawn.name}}/logs" class="button is-small is-ghost">Full</a>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div class="message-body">
-                <pre>{{spawn.logs}}</pre>
-                <form action="/spawn/{{spawn.name}}/console/send" method="post" class="pt-4">
-                    <div class="field has-addons">
+                <div style="max-height: 400px; overflow-y: auto; background: #f5f5f5; padding: 1rem; border-radius: 4px; border: 1px solid #dbdbdb;">
+                    <pre style="margin: 0; font-size: 0.8em; font-family: 'Courier New', monospace; white-space: pre-wrap; word-wrap: break-word;">{{spawn.logs}}</pre>
+                </div>
+                <form action="/spawn/{{spawn.name}}/console/send" method="post" class="mt-3">
+                    <div class="field is-grouped">
                         <div class="control is-expanded">
-                            <input class="input" type="text" name="consoleCommand" placeholder="Enter Console Command">
+                            <input class="input is-small" type="text" name="consoleCommand" placeholder="Console command...">
                         </div>
                         <div class="control">
-                            <button class="button is-link">
-                                Send
-                            </button>
+                            <button class="button is-small is-link">Send</button>
                         </div>
                     </div>
                 </form>
             </div>
-        </article>
-        <form action="/spawn/{{spawn.name}}/server_properties/save" method="post">
-            <article class="message">
-                <div class="message-header">
-                    <p class="subtitle is-4">Server Properties</p>
-                    <div class="is-4 is-flex is-align-items-flex-end">
-                        <button id="updateServerPropertiesButton" class="button is-link">Update & Restart</button>
+        </div>
+
+        <!-- Server Properties Section -->
+        <div class="column is-12-mobile is-12-tablet is-6-desktop">
+            <div class="box">
+                <div class="level mb-3">
+                    <div class="level-left">
+                        <div class="level-item">
+                            <h2 class="title is-5">Server Properties</h2>
+                        </div>
+                    </div>
+                    <div class="level-right">
+                        <div class="level-item">
+                            <form action="/spawn/{{spawn.name}}/server_properties/save" method="post" style="display: inline;">
+                                <button id="updateServerPropertiesButton" class="button is-small is-link">Update & Restart</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
-                <div class="message-body">
-                    <textarea class="textarea is-info" name="server_properties" rows="20">
-                        {{spawn.server_properties}}
-                    </textarea>
-                </div>
-            </article>
-        </form>
+                <form action="/spawn/{{spawn.name}}/server_properties/save" method="post">
+                    <textarea class="textarea" name="server_properties" rows="16" style="font-family: 'Courier New', monospace; font-size: 0.85em;">{{spawn.server_properties}}</textarea>
+                </form>
+            </div>
+        </div>
     </div>
+
+    <!-- Backups List Section -->
+    %if len(spawn.list_backups()) > 0:
+    <div class="columns is-multiline mt-2">
+        <div class="column is-12">
+            <div class="box">
+                <h2 class="title is-5">Existing Backups ({{len(spawn.list_backups())}})</h2>
+                <div class="table-container">
+                    <table class="table is-fullwidth is-striped">
+                        <tbody>
+                        %for backup in spawn.list_backups():
+                            <tr>
+                                <td>
+                                    <div>
+                                        <strong>{{backup['name']}}</strong>
+                                        <br>
+                                        <small class="has-text-grey">{{backup['timestamp']}} ({{backup['size_mb']}} MB)</small>
+                                    </div>
+                                </td>
+                                <td class="is-narrow">
+                                    <form action="/spawn/{{spawn.name}}/backup/restore/{{backup['name']}}" method="post" style="display: inline;" onsubmit="if(!confirm('Restore this backup? Current world will be replaced.')) return false; showLoadingModal('Restoring backup. Please wait...');return true;">
+                                        <button type="submit" class="button is-small is-info">
+                                            <span class="icon"><i class="fas fa-undo"></i></span>
+                                        </button>
+                                    </form>
+                                </td>
+                                <td class="is-narrow">
+                                    <form action="/spawn/{{spawn.name}}/backup/delete/{{backup['name']}}" method="post" style="display: inline;" onsubmit="if(!confirm('Delete this backup?')) return false; showLoadingModal('Deleting backup. Please wait...');return true;">
+                                        <button type="submit" class="button is-small is-danger">
+                                            <span class="icon"><i class="fas fa-trash"></i></span>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        %end
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    %end
 </div>
 
 <!-- Delete Confirmation Modal -->
