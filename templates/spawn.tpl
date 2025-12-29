@@ -5,20 +5,17 @@
     {
         $('#recreateButton').click(() => 
         {
-            $('#actionModalText').text('Server is re-creating. Please Wait...');
-            $('#actionModal').toggleClass('is-active');
+            showLoadingModal('Server is re-creating. Please wait...');
         });
 
         $('#startButton').click(() => 
         {
-            $('#actionModalText').text('Server is starting. Please Wait...');
-            $('#actionModal').toggleClass('is-active');
+            showLoadingModal('Server is starting. Please wait...');
         });
 
         $('#stopButton').click(() => 
         {
-            $('#actionModalText').text('Server is stopping. Please Wait...');
-            $('#actionModal').toggleClass('is-active');
+            showLoadingModal('Server is stopping. Please wait...');
         });
 
         $('#deleteButton').click(() => {
@@ -28,8 +25,7 @@
 
         $('#confirmDeleteButton').click(() => {
             $('#deleteConfirmModal').toggleClass('is-active');
-            $('#actionModalText').text('Server is deleting. Please Wait...');
-            $('#actionModal').toggleClass('is-active');
+            showLoadingModal('Server is deleting. Please wait...');
             $('#deleteForm').submit();
         });
 
@@ -46,20 +42,17 @@
 
         $('#modsSyncButton').click(() => 
         {
-            $('#actionModalText').text('Mods are synching and server is restarting. Please Wait...');
-            $('#actionModal').toggleClass('is-active');
+            showLoadingModal('Mods are synching and server is restarting. Please wait...');
         });
         
         $('#updateServerPropertiesButton').click(() => 
         {
-            $('#actionModalText').text('Properties are updating and server is restarting. Please Wait...');
-            $('#actionModal').toggleClass('is-active');
+            showLoadingModal('Properties are updating and server is restarting. Please wait...');
         });
 
         $('#replaceModsButton').click(() => 
         {
-            $('#actionModalText').text('Uploading mods and restarting server. Please Wait...');
-            $('#actionModal').toggleClass('is-active');
+            showLoadingModal('Uploading mods and restarting server. Please wait...');
         });
         
         // File input change handler
@@ -240,7 +233,7 @@
 
         <!-- Backups Section -->
         <label class="label">Backups</label>
-        <form action="/spawn/{{spawn.name}}/backup/create" method="post">
+        <form action="/spawn/{{spawn.name}}/backup/create" method="post" onsubmit="showLoadingModal('Creating backup. Please wait...');">
             <div class="field p-1">
                 <button type="submit" class="button is-success is-fullwidth">
                     <span class="icon"><i class="fas fa-save"></i></span>
@@ -251,10 +244,10 @@
 
         <!-- Backup Settings -->
         <label class="label">Backup Schedule & Retention</label>
-        <form action="/spawn/{{spawn.name}}/backup/settings" method="post">
+        <form action="/spawn/{{spawn.name}}/backup/settings" method="post" onsubmit="showLoadingModal('Saving backup settings. Please wait...');">
             <div class="field">
                 <label class="checkbox">
-                    <input type="checkbox" name="daily_backup_enabled" %if spawn.backup_settings.get('daily_backup_enabled') %}checked%end %>>
+                    <input type="checkbox" id="daily_backup_enabled" name="daily_backup_enabled" value="on" %if spawn.backup_settings.get('daily_backup_enabled') %}checked%end %>
                     Enable daily automated backups
                 </label>
             </div>
@@ -309,16 +302,16 @@
                 </div>
                 <div class="level-right">
                     <div class="level-item">
-                        <form action="/spawn/{{spawn.name}}/backup/restore/{{backup['name']}}" method="post" style="display: inline;">
-                            <button type="submit" class="button is-small is-info" onclick="return confirm('Restore this backup? Current world will be replaced.');">
+                        <form action="/spawn/{{spawn.name}}/backup/restore/{{backup['name']}}" method="post" style="display: inline;" onsubmit="if(!confirm('Restore this backup? Current world will be replaced.')) return false; showLoadingModal('Restoring backup. Please wait...');return true;">
+                            <button type="submit" class="button is-small is-info">
                                 <span class="icon is-small"><i class="fas fa-undo"></i></span>
                                 <span>Restore</span>
                             </button>
                         </form>
                     </div>
                     <div class="level-item">
-                        <form action="/spawn/{{spawn.name}}/backup/delete/{{backup['name']}}" method="post" style="display: inline;">
-                            <button type="submit" class="button is-small is-danger" onclick="return confirm('Delete this backup?');">
+                        <form action="/spawn/{{spawn.name}}/backup/delete/{{backup['name']}}" method="post" style="display: inline;" onsubmit="if(!confirm('Delete this backup?')) return false; showLoadingModal('Deleting backup. Please wait...');return true;">
+                            <button type="submit" class="button is-small is-danger">
                                 <span class="icon is-small"><i class="fas fa-trash"></i></span>
                                 <span>Delete</span>
                             </button>

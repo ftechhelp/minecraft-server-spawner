@@ -96,12 +96,14 @@ class Spawn:
         """Create a backup of entire spawn directory (world, mods, configs, etc). Returns (success, message, backup_filename)"""
         try:
             import tarfile
-            from datetime import datetime
+            from datetime import datetime, timezone
             
             os.makedirs(self.backups_dir, exist_ok=True)
             
             if not backup_name:
-                backup_name = f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                # Use local timezone for timestamps
+                now_local = datetime.now()
+                backup_name = f"backup_{now_local.strftime('%Y%m%d_%H%M%S')}"
             
             # Ensure backup name doesn't have extension (we'll add .tar.gz)
             backup_name = backup_name.replace('.tar.gz', '').replace('.tar', '')
@@ -121,8 +123,9 @@ class Spawn:
                         arcname = os.path.relpath(file_path, self.directory)
                         tar.add(file_path, arcname=arcname)
             
-            # Update last backup timestamp
-            self.backup_settings['last_backup_timestamp'] = datetime.now().isoformat()
+            # Update last backup timestamp with local timezone
+            now_local = datetime.now()
+            self.backup_settings['last_backup_timestamp'] = now_local.isoformat()
             self.__save_backup_settings()
             
             # Cleanup old backups based on retention days
