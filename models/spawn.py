@@ -96,13 +96,15 @@ class Spawn:
         """Create a backup of entire spawn directory (world, mods, configs, etc). Returns (success, message, backup_filename)"""
         try:
             import tarfile
-            from datetime import datetime, timezone
+            from datetime import datetime
+            from zoneinfo import ZoneInfo
             
             os.makedirs(self.backups_dir, exist_ok=True)
             
+            tz = ZoneInfo("America/Vancouver")
             if not backup_name:
-                # Use local timezone for timestamps
-                now_local = datetime.now()
+                # Use Vancouver timezone for timestamps
+                now_local = datetime.now(tz=tz)
                 backup_name = f"backup_{now_local.strftime('%Y%m%d_%H%M%S')}"
             
             # Ensure backup name doesn't have extension (we'll add .tar.gz)
@@ -123,8 +125,8 @@ class Spawn:
                         arcname = os.path.relpath(file_path, self.directory)
                         tar.add(file_path, arcname=arcname)
             
-            # Update last backup timestamp with local timezone
-            now_local = datetime.now()
+            # Update last backup timestamp with Vancouver timezone
+            now_local = datetime.now(tz=tz)
             self.backup_settings['last_backup_timestamp'] = now_local.strftime('%Y-%m-%d %H:%M:%S')
             self.__save_backup_settings()
             
@@ -153,7 +155,9 @@ class Spawn:
                     size_mb = os.path.getsize(filepath) / (1024 * 1024)
                     mtime = os.path.getmtime(filepath)
                     from datetime import datetime
-                    timestamp = datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M:%S')
+                    from zoneinfo import ZoneInfo
+                    tz = ZoneInfo("America/Vancouver")
+                    timestamp = datetime.fromtimestamp(mtime, tz=tz).strftime('%Y-%m-%d %H:%M:%S')
                     
                     backups.append({
                         'name': filename,
