@@ -35,10 +35,57 @@
         $(document).on('click', '.cancel-delete-btn', function() {
             $('#deleteConfirmModal').removeClass('is-active');
         });
+        let streamInterval = null;
+        let isStreaming = false;
+
+        // Scroll logs to bottom on load
+        function scrollLogsToBottom() {
+            const logsContainer = $('#logsContainer');
+            if (logsContainer.length) {
+                logsContainer.scrollTop(logsContainer[0].scrollHeight);
+            }
+        }
+
+        // Fetch and update logs
+        function refreshLogs() {
+            $.get(window.location.pathname + '/logs/content', function(data) {
+                $('#logsContent').text(data);
+                scrollLogsToBottom();
+            }).fail(function() {
+                console.error('Failed to fetch logs');
+            });
+        }
+
+        // Toggle streaming
+        function toggleStreaming() {
+            isStreaming = !isStreaming;
+            const $streamButton = $('#streamButton');
+            
+            if (isStreaming) {
+                $streamButton.removeClass('is-outlined is-info').addClass('is-success');
+                $streamButton.html('<span class="icon"><i class="fas fa-broadcast-tower"></i></span><span>Streaming</span>');
+                streamInterval = setInterval(refreshLogs, 2000); // Refresh every 2 seconds
+            } else {
+                $streamButton.removeClass('is-success').addClass('is-outlined is-info');
+                $streamButton.html('<span class="icon"><i class="fas fa-broadcast-tower"></i></span><span>Stream</span>');
+                if (streamInterval) {
+                    clearInterval(streamInterval);
+                    streamInterval = null;
+                }
+            }
+        }
+
+        $('#streamButton').click(toggleStreaming);
+
         $('#refreshLogButton').click(() => 
         {
             $('#refreshLogButton').toggleClass('is-loading');
+            refreshLogs();
+            setTimeout(() => $('#refreshLogButton').removeClass('is-loading'), 1000);
         });
+
+        // Scroll to bottom on initial load
+        scrollLogsToBottom();
 
         $('#modsSyncButton').click(() => 
         {
@@ -261,25 +308,23 @@
     <div class="columns is-multiline mt-2">
         <div class="column is-12-mobile is-12-tablet is-6-desktop">
             <div class="box">
-                <div class="level mb-3">
-                    <div class="level-left">
-                        <div class="level-item">
-                            <h2 class="title is-5">Logs</h2>
-                        </div>
-                    </div>
-                    <div class="level-right">
-                        <div class="level-item">
-                            <form action="/spawn/{{spawn.name}}/refresh" method="post" style="display: inline;">
-                                <button id="refreshLogButton" class="button is-small is-link">Refresh</button>
-                            </form>
-                        </div>
-                        <div class="level-item">
-                            <a href="/spawn/{{spawn.name}}/logs" class="button is-small is-ghost">Full</a>
-                        </div>
-                    </div>
+                <h2 class="title is-5">Logs</h2>
+                <div class="buttons are-small mb-3">
+                    <button id="streamButton" class="button is-outlined is-info">
+                        <span class="icon"><i class="fas fa-broadcast-tower"></i></span>
+                        <span>Stream</span>
+                    </button>
+                    <button id="refreshLogButton" type="button" class="button is-link">
+                        <span class="icon"><i class="fas fa-sync"></i></span>
+                        <span>Refresh</span>
+                    </button>
+                    <a href="/spawn/{{spawn.name}}/logs" class="button is-ghost">
+                        <span class="icon"><i class="fas fa-expand"></i></span>
+                        <span>Full</span>
+                    </a>
                 </div>
-                <div style="max-height: 400px; overflow-y: auto; background: #f5f5f5; padding: 1rem; border-radius: 4px; border: 1px solid #dbdbdb;">
-                    <pre style="margin: 0; font-size: 0.8em; font-family: 'Courier New', monospace; white-space: pre-wrap; word-wrap: break-word;">{{spawn.logs}}</pre>
+                <div id="logsContainer" style="max-height: 400px; overflow-y: auto; background: #f5f5f5; padding: 1rem; border-radius: 4px; border: 1px solid #dbdbdb;">
+                    <pre id="logsContent" style="margin: 0; font-size: 0.8em; font-family: 'Courier New', monospace; white-space: pre-wrap; word-wrap: break-word;">{{spawn.logs}}</pre>
                 </div>
                 <form action="/spawn/{{spawn.name}}/console/send" method="post" class="mt-3">
                     <div class="field is-grouped">
