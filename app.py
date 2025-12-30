@@ -78,6 +78,12 @@ def download_logs(name):
     spawn = spawner.spawns[name]
     return template('./templates/spawn_logs', logs=spawn.get_logs())
 
+@get('/spawn/<name>/logs/content')
+def get_logs_content(name):
+    spawn = spawner.spawns[name]
+    spawn.refreshContainerInformation()
+    return spawn.get_logs()
+
 @post('/spawn/<name>/mods/delete')
 def delete_mod(name):
     spawn = spawner.spawns[name]
