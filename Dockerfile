@@ -26,6 +26,7 @@ WORKDIR /app
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV DOCKER_HOST=unix:///var/run/docker.sock
+ENV TZ=America/Vancouver
 
 # Create a directory for spawn data
 RUN mkdir -p /app/spawn

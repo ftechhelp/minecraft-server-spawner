@@ -15,6 +15,7 @@ services:
       - SPAWNS_DIR=/app/spawns  # Path used by the app to read/write spawn definitions
       - PYTHONUNBUFFERED=1
       - DOCKER_HOST=unix:///var/run/docker.sock
+      - TZ=America/Vancouver
     networks:
       - minecraft-network
 
