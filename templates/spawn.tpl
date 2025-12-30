@@ -263,7 +263,7 @@
                             </label>
                         </div>
                     </div>
-                    <button class="button is-info is-fullwidth is-small">Add Mod</button>
+                    <button type="submit" id="addModButton" class="button is-info is-fullwidth is-small">Add Mod</button>
                 </form>
             </div>
         </div>
