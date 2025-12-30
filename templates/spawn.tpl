@@ -108,14 +108,28 @@
         $('.file-input').on('change', function() 
         {
             const $fileNameDisplay = $(this).closest('.file-label').find('.file-name');
+            const $form = $(this).closest('form');
+            const $submitButton = $form.find('button[type="submit"]');
             
-            if (this.files && this.files[0]) 
+            if (this.files && this.files.length > 0) 
             {
                 $fileNameDisplay.text(this.files[0].name);
+                $submitButton.prop('disabled', false).removeClass('is-loading');
             } 
             else 
             {
                 $fileNameDisplay.text('No file selected');
+                $submitButton.prop('disabled', true);
+            }
+        });
+
+        // Initialize button states on page load
+        $('input.file-input').each(function() {
+            const $form = $(this).closest('form');
+            const $submitButton = $form.find('button[type="submit"]');
+            
+            if (!this.files || this.files.length === 0) {
+                $submitButton.prop('disabled', true);
             }
         });
     });
