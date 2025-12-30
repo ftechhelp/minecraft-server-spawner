@@ -39,10 +39,12 @@ def spawn():
 @get('/spawn/<name>')
 def view_spawn(name):
     from datetime import datetime
+    from zoneinfo import ZoneInfo
     spawn = spawner.spawns[name]
     spawn.refreshContainerInformation()
     spawn.reload_backup_settings()
-    default_backup_name = f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    tz = ZoneInfo("America/Vancouver")
+    default_backup_name = f"backup_{datetime.now(tz=tz).strftime('%Y%m%d_%H%M%S')}"
     return template('./templates/spawn', spawn=spawn, mods=spawn.list_mods(), default_backup_name=default_backup_name)
 
 @post('/spawn/<name>/recreate')
