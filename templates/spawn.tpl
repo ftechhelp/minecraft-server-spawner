@@ -273,6 +273,12 @@
             <div class="box">
                 <h2 class="title is-5">Backups</h2>
                 <form action="/spawn/{{spawn.name}}/backup/create" method="post" onsubmit="showLoadingModal('Creating backup. Please wait...');">
+                    <div class="field mb-2">
+                        <label class="label is-small">Backup Name (optional)</label>
+                        <div class="control">
+                            <input class="input is-small" type="text" name="backup_name" placeholder="{{default_backup_name}}">
+                        </div>
+                    </div>
                     <button type="submit" class="button is-success is-fullwidth mb-3">
                         <span class="icon"><i class="fas fa-save"></i></span>
                         <span>Create Backup</span>

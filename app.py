@@ -38,10 +38,12 @@ def spawn():
 
 @get('/spawn/<name>')
 def view_spawn(name):
+    from datetime import datetime
     spawn = spawner.spawns[name]
     spawn.refreshContainerInformation()
     spawn.reload_backup_settings()
-    return template('./templates/spawn', spawn=spawn, mods=spawn.list_mods())
+    default_backup_name = f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    return template('./templates/spawn', spawn=spawn, mods=spawn.list_mods(), default_backup_name=default_backup_name)
 
 @post('/spawn/<name>/recreate')
 def recreate_spawn(name):
@@ -143,7 +145,9 @@ def send_console_command(name):
 @post('/spawn/<name>/backup/create')
 def create_backup(name):
     spawn = spawner.spawns[name]
-    success, message, backup_file = spawn.create_backup()
+    backup_name = request.forms.get('backup_name', '').strip()
+    backup_name = backup_name if backup_name else None
+    success, message, backup_file = spawn.create_backup(backup_name)
     # Redirect back to spawn page (backup creation happens in background)
     redirect(f"/spawn/{name}")
 
