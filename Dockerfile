@@ -9,6 +9,7 @@ RUN apk add --no-cache \
     musl-dev \
     libffi-dev \
     openssl-dev \
+    tzdata \
     && python3 -m venv /opt/venv
 
 # Make sure we use the virtualenv's pip
