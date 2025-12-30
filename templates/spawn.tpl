@@ -87,6 +87,9 @@
         // Scroll to bottom on initial load
         scrollLogsToBottom();
 
+        // Enable streaming by default
+        toggleStreaming();
+
         $('#modsSyncButton').click(() => 
         {
             showLoadingModal('Mods are synching and server is restarting. Please wait...');
