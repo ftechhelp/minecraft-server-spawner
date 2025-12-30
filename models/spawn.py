@@ -125,7 +125,7 @@ class Spawn:
             
             # Update last backup timestamp with local timezone
             now_local = datetime.now()
-            self.backup_settings['last_backup_timestamp'] = now_local.isoformat()
+            self.backup_settings['last_backup_timestamp'] = now_local.strftime('%Y-%m-%d %H:%M:%S')
             self.__save_backup_settings()
             
             # Cleanup old backups based on retention days
