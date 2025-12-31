@@ -284,7 +284,37 @@ class Spawn:
 
     def __updateLogs(self, tail: int = None) -> None:
         try:
-            self.logs = self.container.logs(tail=tail, timestamps=True)
+            raw_logs = self.container.logs(tail=tail, timestamps=True)
+            if isinstance(raw_logs, bytes):
+                raw_logs = raw_logs.decode('utf-8')
+            
+            # Convert UTC timestamps to Vancouver time
+            from datetime import datetime
+            from zoneinfo import ZoneInfo
+            import re
+            
+            tz = ZoneInfo("America/Vancouver")
+            lines = raw_logs.split('\n')
+            converted_lines = []
+            
+            for line in lines:
+                # Docker timestamp format: 2025-12-30T22:38:30.197177550Z [22:38:30]
+                # Match ISO8601 timestamp at start of line
+                match = re.match(r'^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z)\s+(.*)$', line)
+                if match:
+                    utc_time_str = match.group(1)
+                    rest_of_line = match.group(2)
+                    
+                    # Parse UTC time and convert to Vancouver time
+                    utc_time = datetime.fromisoformat(utc_time_str.replace('Z', '+00:00'))
+                    local_time = utc_time.astimezone(tz)
+                    local_time_str = local_time.strftime('%Y-%m-%d %H:%M:%S')
+                    
+                    converted_lines.append(f"{local_time_str} {rest_of_line}")
+                else:
+                    converted_lines.append(line)
+            
+            self.logs = '\n'.join(converted_lines)
         except:
             self.logs = "No logs available."
 
