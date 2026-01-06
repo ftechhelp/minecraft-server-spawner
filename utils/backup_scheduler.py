@@ -71,14 +71,17 @@ class BackupScheduler:
             
             for spawn_name, spawn in self.spawner.spawns.items():
                 try:
+                    # Ensure we have the latest settings from disk
+                    spawn.reload_backup_settings()
+
                     # Check if daily backups are enabled
                     if not spawn.backup_settings.get('daily_backup_enabled', False):
                         print(f"[BackupScheduler] {spawn_name}: Daily backups disabled")
                         continue
                     
                     # Get scheduled time
-                    scheduled_hour = spawn.backup_settings.get('daily_backup_hour', 2)
-                    scheduled_minute = spawn.backup_settings.get('daily_backup_minute', 0)
+                    scheduled_hour = int(spawn.backup_settings.get('daily_backup_hour', 2))
+                    scheduled_minute = int(spawn.backup_settings.get('daily_backup_minute', 0))
                     scheduled_time = dt_time(scheduled_hour, scheduled_minute)
                     
                     # Check if current time is within backup window (±5 minutes)
@@ -86,22 +89,25 @@ class BackupScheduler:
                     window_start = dt_time(scheduled_hour, max(0, scheduled_minute - 5))
                     window_end = dt_time(scheduled_hour, min(59, scheduled_minute + 5))
                     
-                    print(f"[BackupScheduler] {spawn_name}: Current time {current_time}, Window {window_start}-{window_end}, Scheduled {scheduled_time}")
+                    retention_days = spawn.backup_settings.get('retention_days', 7)
+                    print(f"[BackupScheduler] {spawn_name}: Current time {current_time}, Window {window_start}-{window_end}, Scheduled {scheduled_time}, Retention {retention_days}d")
                     
                     if window_start <= current_time <= window_end:
-                        # Check if last backup was today
-                        last_backup_ts = spawn.backup_settings.get('last_backup_timestamp')
-                        if last_backup_ts:
-                            try:
-                                # Parse timestamp in format 'YYYY-MM-DD HH:MM:SS'
-                                last_backup_dt = datetime.strptime(last_backup_ts, '%Y-%m-%d %H:%M:%S').date()
-                                if last_backup_dt == now.date():
-                                    # Already backed up today
-                                    print(f"[BackupScheduler] {spawn_name}: Already backed up today at {last_backup_ts}")
+                        # Skip only if a DAILY backup already exists today
+                        existing_backups = spawn.list_backups()
+                        daily_today = False
+                        for b in existing_backups:
+                            if b.get('type') == 'Daily':
+                                try:
+                                    b_date = datetime.strptime(b.get('timestamp'), '%Y-%m-%d %H:%M:%S').date()
+                                    if b_date == now.date():
+                                        daily_today = True
+                                        break
+                                except Exception:
                                     continue
-                            except ValueError as ve:
-                                # If parsing fails, proceed with backup
-                                print(f"[BackupScheduler] {spawn_name}: Could not parse timestamp '{last_backup_ts}': {ve}")
+                        if daily_today:
+                            print(f"[BackupScheduler] {spawn_name}: Daily backup already exists today; skipping")
+                            continue
                         
                         # Run backup
                         print(f"[BackupScheduler] Running scheduled backup for {spawn_name}")
