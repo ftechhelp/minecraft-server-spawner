@@ -400,6 +400,7 @@
                                 <td>
                                     <div>
                                         <strong>{{backup['name']}}</strong>
+                                        <span class="tag is-light is-rounded">{{backup['type']}}</span>
                                         <br>
                                         <small class="has-text-grey">{{backup['timestamp']}} ({{backup['size_mb']}} MB)</small>
                                     </div>
