@@ -4,6 +4,7 @@ Backup scheduler for handling automatic daily backups for spawns
 import threading
 import time
 from datetime import datetime, time as dt_time
+from zoneinfo import ZoneInfo
 from typing import Callable
 
 
@@ -15,6 +16,7 @@ class BackupScheduler:
         self.thread = None
         self.spawner = None
         self.check_interval = 60  # Check every minute if a backup is due
+        self.tz = ZoneInfo("America/Vancouver")
     
     def start(self, spawner):
         """Start the scheduler with reference to spawner"""
@@ -40,7 +42,7 @@ class BackupScheduler:
         
         while self.running:
             try:
-                now = datetime.now()
+                now = datetime.now(tz=self.tz)
                 current_date = now.date()
                 
                 # Only check once per day, and reset after midnight
@@ -80,10 +82,15 @@ class BackupScheduler:
                         # Check if last backup was today
                         last_backup_ts = spawn.backup_settings.get('last_backup_timestamp')
                         if last_backup_ts:
-                            last_backup_date = datetime.fromisoformat(last_backup_ts).date()
-                            if last_backup_date == now.date():
-                                # Already backed up today
-                                continue
+                            try:
+                                # Parse timestamp in format 'YYYY-MM-DD HH:MM:SS'
+                                last_backup_dt = datetime.strptime(last_backup_ts, '%Y-%m-%d %H:%M:%S').date()
+                                if last_backup_dt == now.date():
+                                    # Already backed up today
+                                    continue
+                            except ValueError:
+                                # If parsing fails, proceed with backup
+                                pass
                         
                         # Run backup
                         print(f"[BackupScheduler] Running scheduled backup for {spawn_name}")
