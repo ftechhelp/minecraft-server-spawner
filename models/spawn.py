@@ -92,8 +92,12 @@ class Spawn:
         os.makedirs(self.mods_dir, exist_ok=True)
 
     # --- Backup management ---
-    def create_backup(self, backup_name: str = None) -> tuple:
-        """Create a backup of entire spawn directory (world, mods, configs, etc). Returns (success, message, backup_filename)"""
+    def create_backup(self, backup_name: str = None, is_scheduled: bool = False) -> tuple:
+        """Create a backup of entire spawn directory (world, mods, configs, etc).
+
+        Returns (success, message, backup_filename).
+        is_scheduled controls naming and retention rules so we can distinguish daily vs manual backups.
+        """
         try:
             import tarfile
             from datetime import datetime
@@ -103,9 +107,10 @@ class Spawn:
             
             tz = ZoneInfo("America/Vancouver")
             if not backup_name:
-                # Use Vancouver timezone for timestamps
+                # Use Vancouver timezone for timestamps and prefix to indicate source
                 now_local = datetime.now(tz=tz)
-                backup_name = f"backup_{now_local.strftime('%Y%m%d_%H%M%S')}"
+                prefix = "daily" if is_scheduled else "manual"
+                backup_name = f"{prefix}_{now_local.strftime('%Y%m%d_%H%M%S')}"
             
             # Ensure backup name doesn't have extension (we'll add .tar.gz)
             backup_name = backup_name.replace('.tar.gz', '').replace('.tar', '')
@@ -143,7 +148,7 @@ class Spawn:
             return False, f"Error: {str(e)}", None
     
     def list_backups(self) -> list:
-        """List all backups with metadata. Returns list of dicts with name, timestamp, size"""
+        """List all backups with metadata. Returns list of dicts with name, timestamp, size, type"""
         try:
             if not os.path.exists(self.backups_dir):
                 return []
@@ -158,11 +163,14 @@ class Spawn:
                     from zoneinfo import ZoneInfo
                     tz = ZoneInfo("America/Vancouver")
                     timestamp = datetime.fromtimestamp(mtime, tz=tz).strftime('%Y-%m-%d %H:%M:%S')
+
+                    backup_type = "Daily" if filename.startswith("daily_") else "Manual"
                     
                     backups.append({
                         'name': filename,
                         'timestamp': timestamp,
-                        'size_mb': f"{size_mb:.2f}"
+                        'size_mb': f"{size_mb:.2f}",
+                        'type': backup_type
                     })
             return backups
         except Exception as e:

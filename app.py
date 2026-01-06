@@ -149,7 +149,7 @@ def create_backup(name):
     spawn = spawner.spawns[name]
     backup_name = request.forms.get('backup_name', '').strip()
     backup_name = backup_name if backup_name else None
-    success, message, backup_file = spawn.create_backup(backup_name)
+    success, message, backup_file = spawn.create_backup(backup_name, is_scheduled=False)
     # Redirect back to spawn page (backup creation happens in background)
     redirect(f"/spawn/{name}")
 

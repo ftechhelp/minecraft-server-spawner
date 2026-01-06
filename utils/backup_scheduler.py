@@ -105,7 +105,7 @@ class BackupScheduler:
                         
                         # Run backup
                         print(f"[BackupScheduler] Running scheduled backup for {spawn_name}")
-                        success, message, backup_file = spawn.create_backup()
+                        success, message, backup_file = spawn.create_backup(is_scheduled=True)
                         if success:
                             print(f"[BackupScheduler] ✓ Backup created for {spawn_name}: {backup_file}")
                         else:
