@@ -104,6 +104,11 @@
         {
             showLoadingModal('Uploading mods and restarting server. Please wait...');
         });
+
+        $('#addModButton').click(() =>
+        {
+            showLoadingModal('Uploading mod. Please wait...');
+        });
         
         $('.file-input').on('change', function() 
         {
