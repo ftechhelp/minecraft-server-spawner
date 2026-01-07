@@ -88,6 +88,14 @@ def get_logs_content(name):
     spawn.refreshContainerInformation()
     return spawn.get_logs()
 
+@get('/spawn/<name>/status')
+def get_spawn_status(name):
+    import json
+    spawn = spawner.spawns[name]
+    spawn.refreshContainerInformation()
+    status = spawn.get_status()
+    return json.dumps({'status': status})
+
 @post('/spawn/<name>/mods/delete')
 def delete_mod(name):
     spawn = spawner.spawns[name]
