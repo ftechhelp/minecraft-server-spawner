@@ -137,6 +137,34 @@
                 $submitButton.prop('disabled', true);
             }
         });
+
+        // Poll for status updates every 3 seconds
+        setInterval(function() {
+            $.get(window.location.pathname + '/status', function(data) {
+                try {
+                    const response = JSON.parse(data);
+                    const status = response.status;
+                    const $statusCell = $('td:contains("Status:")').parent().find('td:last');
+                    
+                    if ($statusCell.length) {
+                        let tagClass = 'is-success';
+                        if (status === 'running') {
+                            tagClass = 'is-success';
+                        } else if (['created', 'restarting', 'removing', 'paused', 'exited'].includes(status)) {
+                            tagClass = 'is-warning';
+                        } else {
+                            tagClass = 'is-danger';
+                        }
+                        
+                        $statusCell.html(`<span class="tag ${tagClass}">${status}</span>`);
+                    }
+                } catch (e) {
+                    console.error('Error updating status:', e);
+                }
+            }).fail(function() {
+                console.error('Failed to fetch status');
+            });
+        }, 3000);
     });
 </script>
 
