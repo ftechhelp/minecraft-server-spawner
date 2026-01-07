@@ -9,6 +9,7 @@ RUN apk add --no-cache \
     musl-dev \
     libffi-dev \
     openssl-dev \
+    tzdata \
     && python3 -m venv /opt/venv
 
 # Make sure we use the virtualenv's pip
@@ -26,6 +27,7 @@ WORKDIR /app
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV DOCKER_HOST=unix:///var/run/docker.sock
+ENV TZ=America/Vancouver
 
 # Create a directory for spawn data
 RUN mkdir -p /app/spawn
