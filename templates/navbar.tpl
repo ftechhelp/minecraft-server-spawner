@@ -1,4 +1,4 @@
- <nav class="navbar is-primary" role="navigation" aria-label="main navigation">
+<nav class="navbar is-primary" role="navigation" aria-label="main navigation">
     <div class="navbar-brand">
         <a class="navbar-item" href="https://spawner.joshserver.online">
             <svg fill="#000000" height="800px" width="800px" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg"
@@ -54,25 +54,12 @@
                 Home
             </a>
 
-            <a class="navbar-item">
+            <a class="navbar-item" href="/docs">
                 Documentation
             </a>
-
-            <div class="navbar-item has-dropdown is-hoverable">
-                <a class="navbar-link">
-                    More
-                </a>
-
-                <div class="navbar-dropdown">
-                    <a class="navbar-item">
-                        Contact
-                    </a>
-                    <hr class="navbar-divider">
-                    <a class="navbar-item">
-                        Report an issue
-                    </a>
-                </div>
-            </div>
+            <a class="navbar-item" href="https://github.com/ftechhelp/minecraft-server-spawner/issues/new">
+                Report an issue
+            </a>
         </div>
 
         <div class="navbar-end">
