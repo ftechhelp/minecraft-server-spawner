@@ -54,7 +54,7 @@
                 Home
             </a>
 
-            <a class="navbar-item">
+            <a class="navbar-item" href="/docs">
                 Documentation
             </a>
 

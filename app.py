@@ -24,6 +24,10 @@ def index():
     spawner.loadSpawns()
     return template('./templates/index', spawns=spawner.spawns)
 
+@get('/docs')
+def documentation():
+    return template('./templates/documentation')
+
 @post('/spawn')
 def spawn():
     
