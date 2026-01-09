@@ -57,19 +57,9 @@
             <a class="navbar-item" href="/docs">
                 Documentation
             </a>
-
-            <div class="navbar-item has-dropdown is-hoverable">
-                <a class="navbar-link">
-                    More
-                </a>
-
-                <div class="navbar-dropdown">
-                    <hr class="navbar-divider">
-                    <a class="navbar-item">
-                        Report an issue
-                    </a>
-                </div>
-            </div>
+            <a class="navbar-item" href="https://github.com/ftechhelp/minecraft-server-spawner/issues/new">
+                Report an issue
+            </a>
         </div>
 
         <div class="navbar-end">
