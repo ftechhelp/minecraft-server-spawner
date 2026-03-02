@@ -33,4 +33,5 @@ ENV TZ=America/Vancouver
 RUN mkdir -p /app/spawn
 
 # Set the entrypoint to start the Docker daemon and the application
-ENTRYPOINT ["sh", "-c", "dockerd > /var/log/docker.log 2>&1 & sleep 5 && python app.py"]
+ENTRYPOINT ["sh", "-c", "dockerd-entrypoint.sh &"] 
+CMD ["sh", "-c", "sleep 10 && python app.py"]
