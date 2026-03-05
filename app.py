@@ -1,4 +1,4 @@
-from bottle import get, post, run, template, request, redirect, BaseRequest
+from bottle import get, post, run, template, request, redirect, BaseRequest, error
 from utils.spawner import Spawner
 from utils.backup_scheduler import backup_scheduler
 from utils.validators import (
@@ -258,6 +258,32 @@ def update_backup_settings(name):
         retention_days=retention_days
     )
     redirect(f"/spawn/{name}")
+
+
+@error(404)
+def error404(err):
+    return template(
+        './templates/error',
+        status_code=404,
+        title='Page not found',
+        friendly_message="Oups... Uncle Vince looked in all the usual places, but this page isn't here.",
+        details=f"Path: {request.path}",
+    )
+
+
+@error(500)
+def error500(err):
+    exception_obj = getattr(err, 'exception', None)
+    details = str(exception_obj) if exception_obj else str(err)
+    details = details or 'No exception details were captured.'
+
+    return template(
+        './templates/error',
+        status_code=500,
+        title='Unexpected server error',
+        friendly_message='Oups... Uncle Vince has seen many different outcomes, but not this one yet.',
+        details=details,
+    )
 
 
 if __name__ == '__main__':
