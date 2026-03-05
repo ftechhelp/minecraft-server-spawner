@@ -11,8 +11,10 @@ services:
       - "25565-25665:25565-25665"  # Minecraft server port range
     volumes:
       - ./spawns:/app/spawns  # Persistent storage for Minecraft server data
+      - ./backups:/app/backups  # Persistent storage for archived backups
     environment:
       - SPAWNS_DIR=/app/spawns  # Path used by the app to read/write spawn definitions
+      - ARCHIVED_BACKUPS_DIR=/app/backups
       - PYTHONUNBUFFERED=1
       - DOCKER_HOST=unix:///var/run/docker.sock
       - TZ=America/Vancouver

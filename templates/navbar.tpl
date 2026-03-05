@@ -57,6 +57,9 @@
             <a class="navbar-item" href="/docs">
                 Documentation
             </a>
+            <a class="navbar-item" href="/backups">
+                Archived Backups
+            </a>
             <a class="navbar-item" href="https://github.com/ftechhelp/minecraft-server-spawner/issues/new">
                 Report an issue
             </a>

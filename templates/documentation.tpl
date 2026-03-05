@@ -20,6 +20,7 @@
                     <li>Pick server type (<strong>FORGE</strong> or <strong>VANILLA</strong>) and versions.</li>
                     <li>Wait until status is <strong>running</strong> and logs contain <code>Done</code>.</li>
                     <li>Connect from Minecraft using <code>vfontaine.ca:PORT</code>.</li>
+                    <li>Use <strong>Archived Backups</strong> in the navbar to manage backups preserved after spawn deletion.</li>
                 </ol>
             </section>
 
@@ -114,9 +115,23 @@
                     <li>Create manual backups before changing mods or properties.</li>
                     <li>Enable daily backups and set retention days to control storage.</li>
                     <li>Restore a backup if a world/mod update causes instability.</li>
+                    <li>When deleting a spawn, the latest backup is copied to the root <code>backups</code> archive folder before deletion.</li>
                 </ul>
+                <h3 class="title is-5 mt-4">Archived Backups Page</h3>
+                <p>Open <strong>Archived Backups</strong> from the navbar (<code>/backups</code>) to manage preserved backups.</p>
+                <ul>
+                    <li>See where a backup came from (source server name).</li>
+                    <li>See server type and Minecraft/Forge version metadata.</li>
+                    <li>Restore an archived backup into a <strong>new server</strong> (new name + next available port).</li>
+                    <li>Permanently delete archived backups (with confirmation popup).</li>
+                </ul>
+
+                <div class="notification is-warning is-light">
+                    <strong>Important:</strong> Deleting a spawn still removes that spawn's live files. The archived backup is your preserved restore point.
+                </div>
+
                 <div class="notification is-danger is-light">
-                    <strong>Delete is permanent:</strong> deleting a server removes world data, configs, and mods for that spawn.
+                    <strong>Archived backup delete is permanent:</strong> once removed from <code>/backups</code>, it cannot be recovered.
                 </div>
             </section>
 

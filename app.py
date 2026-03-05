@@ -41,6 +41,15 @@ def index():
 def documentation():
     return template('./templates/documentation')
 
+
+@get('/backups')
+def archived_backups():
+    spawner.loadSpawns()
+    archived = spawner.list_archived_backups()
+    notice = request.query.get('notice', '').strip()
+    page_error = request.query.get('error', '').strip()
+    return template('./templates/archived_backups', archived_backups=archived, notice=notice, page_error=page_error)
+
 @post('/spawn')
 def spawn():
     spawner.loadSpawns()
@@ -136,9 +145,19 @@ def stop_spawn(name):
 
 @post('/spawn/<name>/delete')
 def delete_spawn(name):
+    spawner.loadSpawns()
     spawn = spawner.spawns[name]
+
+    archive_notice = ''
+    archive_success, archive_message, _ = spawn.archive_latest_backup(spawner.archived_backups_dir)
+    if archive_success:
+        archive_notice = f"Latest backup archived before deleting '{name}'."
+    else:
+        archive_notice = f"Deleted '{name}'. No archived backup was created ({archive_message})."
+
     spawn.purge()
-    redirect('/')
+    spawner.loadSpawns()
+    redirect(f"/backups?notice={archive_notice}")
 
 @post('/spawn/<name>/refresh')
 def refresh_spawn(name):
@@ -258,6 +277,35 @@ def update_backup_settings(name):
         retention_days=retention_days
     )
     redirect(f"/spawn/{name}")
+
+
+@post('/backups/restore')
+def restore_archived_backup():
+    spawner.loadSpawns()
+    archive_filename = request.forms.get('backup_file', '').strip()
+    restored_name = request.forms.get('restored_name', '').strip() or None
+
+    if not archive_filename:
+        redirect('/backups?error=No archived backup selected for restore')
+
+    success, message, new_spawn_name = spawner.restore_archived_backup(archive_filename, restored_name)
+    if not success:
+        redirect(f"/backups?error={message}")
+
+    redirect(f"/spawn/{new_spawn_name}")
+
+
+@post('/backups/delete')
+def delete_archived_backup():
+    archive_filename = request.forms.get('backup_file', '').strip()
+    if not archive_filename:
+        redirect('/backups?error=No archived backup selected for deletion')
+
+    success, message = spawner.delete_archived_backup(archive_filename)
+    if not success:
+        redirect(f"/backups?error={message}")
+
+    redirect('/backups?notice=Archived backup deleted permanently')
 
 
 @error(404)

@@ -6,6 +6,7 @@ import tempfile
 import zipfile
 import os
 from bs4 import BeautifulSoup
+import json
 
 class Spawn:
 
@@ -75,12 +76,65 @@ class Spawn:
         else:
             print(f"No such spawn directory exists for {self.name}.")
 
+    def archive_latest_backup(self, archive_dir: str) -> tuple:
+        """Copy latest backup to archive dir with metadata. Returns (success, message, archive_filename)."""
+        try:
+            latest_backup = self._get_latest_backup_path()
+            if not latest_backup:
+                return False, "No backups found to archive", None
+
+            os.makedirs(archive_dir, exist_ok=True)
+
+            source_filename = os.path.basename(latest_backup)
+            archive_filename = f"{self.name}__{source_filename}"
+            archive_path = os.path.join(archive_dir, archive_filename)
+
+            counter = 1
+            while os.path.exists(archive_path):
+                archive_filename = f"{self.name}__{counter}__{source_filename}"
+                archive_path = os.path.join(archive_dir, archive_filename)
+                counter += 1
+
+            shutil.copy2(latest_backup, archive_path)
+
+            metadata = {
+                "source_server": self.name,
+                "source_backup_file": source_filename,
+                "minecraft_version": self.minecraft_version,
+                "forge_version": self.forge_version,
+                "server_type": self.type,
+                "archived_backup_file": archive_filename,
+            }
+
+            metadata_path = f"{archive_path}.json"
+            with open(metadata_path, "w") as meta_file:
+                json.dump(metadata, meta_file, indent=2)
+
+            return True, f"Archived latest backup to {archive_filename}", archive_filename
+        except Exception as e:
+            print(f"Error archiving latest backup for {self.name}: {str(e)}")
+            return False, f"Error: {str(e)}", None
+
     def get_status(self) -> str:
         if self.container == None:
             return "N/A"
         
         status = self.container.state.status
         return status
+
+    def _get_latest_backup_path(self) -> str:
+        if not os.path.isdir(self.backups_dir):
+            return ""
+
+        backup_paths = []
+        for filename in os.listdir(self.backups_dir):
+            if filename.endswith('.tar.gz'):
+                backup_paths.append(os.path.join(self.backups_dir, filename))
+
+        if not backup_paths:
+            return ""
+
+        return max(backup_paths, key=os.path.getmtime)
     
     def get_logs(self) -> str:
         self.__updateLogs()
@@ -181,6 +235,7 @@ class Spawn:
         """Restore from backup. Returns (success, message)"""
         try:
             import tarfile
+            import time
             
             backup_path = os.path.join(self.backups_dir, backup_filename)
             if not os.path.exists(backup_path):
@@ -199,17 +254,76 @@ class Spawn:
             os.makedirs(self.directory, exist_ok=True)
             with tarfile.open(backup_path, "r:gz") as tar:
                 tar.extractall(path=self.directory)
+
+            # Ensure restored backup does not override this spawn's runtime identity
+            # (container name, port, and versions for the currently selected spawn).
+            self._sync_docker_compose_with_spawn_settings()
             
             # Restart server
             self.up()
-            
-            print(f"Restored backup for {self.name}: {backup_filename}")
-            return True, f"Backup restored successfully. Server restarted."
+
+            # Validate startup and provide useful diagnostics when startup fails.
+            status = "N/A"
+            for _ in range(6):
+                self.refreshContainerInformation()
+                status = self.get_status()
+                if status in {"running", "restarting", "created"}:
+                    print(f"Restored backup for {self.name}: {backup_filename}")
+                    return True, f"Backup restored successfully. Server status: {status}."
+                if status in {"exited", "dead"}:
+                    break
+                time.sleep(1)
+
+            recent_logs = "No logs available."
+            try:
+                logs = self.get_logs() or ""
+                tail_lines = logs.splitlines()[-20:]
+                if tail_lines:
+                    recent_logs = "\n".join(tail_lines)
+            except Exception:
+                pass
+
+            return False, f"Backup restored but server did not start (status: {status}). Recent logs:\n{recent_logs}"
         except Exception as e:
             print(f"Error restoring backup for {self.name}: {str(e)}")
             import traceback
             traceback.print_exc()
             return False, f"Error: {str(e)}"
+
+    def _sync_docker_compose_with_spawn_settings(self) -> None:
+        """Keep docker-compose aligned with this spawn's identity after backup extraction."""
+        docker_compose = {}
+        if os.path.exists(self.docker_compose_file):
+            try:
+                with open(self.docker_compose_file, "r") as compose_file:
+                    docker_compose = yaml.safe_load(compose_file) or {}
+            except Exception:
+                docker_compose = {}
+
+        if 'services' not in docker_compose:
+            docker_compose['services'] = {}
+        if 'mc' not in docker_compose['services']:
+            docker_compose['services']['mc'] = {}
+
+        data_volume_path = os.path.join(self.directory, "data")
+
+        docker_compose['services']['mc']['container_name'] = self.name
+        docker_compose['services']['mc']['ports'] = [f"{self.port}:25565"]
+        docker_compose['services']['mc']['volumes'] = [f"{data_volume_path}:/data"]
+        docker_compose['services']['mc']['image'] = "itzg/minecraft-server"
+        docker_compose['services']['mc']['stdin_open'] = True
+        docker_compose['services']['mc']['tty'] = True
+        docker_compose['services']['mc']['environment'] = [
+            f"TYPE={self.type}",
+            f"VERSION={self.minecraft_version}",
+            f"FORGE_VERSION={self.forge_version}",
+            "EULA=TRUE",
+            "INIT_MEMORY=2G",
+            "MAX_MEMORY=16G",
+        ]
+
+        with open(self.docker_compose_file, 'w') as file:
+            yaml.dump(docker_compose, file, default_flow_style=False)
     
     def delete_backup(self, backup_filename: str) -> tuple:
         """Delete a backup. Returns (success, message)"""
@@ -329,10 +443,10 @@ class Spawn:
     def __load_backup_settings(self) -> dict:
         """Load backup settings from file"""
         default_settings = {
-            'daily_backup_enabled': False,
+            'daily_backup_enabled': True,
             'daily_backup_hour': 2,  # 2 AM
             'daily_backup_minute': 0,
-            'retention_days': 7,
+            'retention_days': 3,
             'last_backup_timestamp': None
         }
         try:

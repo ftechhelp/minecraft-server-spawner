@@ -1,0 +1,8 @@
+{
+  "source_server": "KVM",
+  "source_backup_file": "manual_20260304_191723.tar.gz",
+  "minecraft_version": "LATEST",
+  "forge_version": "LATEST",
+  "server_type": "FORGE",
+  "archived_backup_file": "KVM__manual_20260304_191723.tar.gz"
+}

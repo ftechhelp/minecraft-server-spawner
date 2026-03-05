@@ -31,6 +31,7 @@ ENV TZ=America/Vancouver
 
 # Create a directory for spawn data
 RUN mkdir -p /app/spawns
+RUN mkdir -p /app/backups
 
 # Start Docker daemon, then start the web app in the foreground
 CMD ["sh", "-c", "dockerd-entrypoint.sh & sleep 10 && python app.py"]
