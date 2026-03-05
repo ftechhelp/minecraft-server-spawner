@@ -1,11 +1,24 @@
 from bottle import get, post, run, template, request, redirect, BaseRequest
 from utils.spawner import Spawner
 from utils.backup_scheduler import backup_scheduler
+from utils.validators import (
+    validate_spawn_name,
+    validate_port,
+    validate_server_type,
+    validate_minecraft_version,
+    validate_forge_version,
+    check_port_availability,
+    find_next_available_port,
+)
 from dotenv import load_dotenv
 import os
 import atexit
 
 load_dotenv()
+
+
+def env_flag(name: str, default: str = "false") -> bool:
+    return os.environ.get(name, default).strip().lower() in {"1", "true", "yes", "on"}
 
 # Allow large multi-file uploads (e.g., a folder of .jar mods)
 # Default is ~100KB; increase to 512MB to support mod folder uploads
@@ -22,7 +35,7 @@ atexit.register(backup_scheduler.stop)
 @get('/')
 def index():
     spawner.loadSpawns()
-    return template('./templates/index', spawns=spawner.spawns)
+    return template('./templates/index', spawns=spawner.spawns, create_error=None, create_form={})
 
 @get('/docs')
 def documentation():
@@ -30,14 +43,66 @@ def documentation():
 
 @post('/spawn')
 def spawn():
-    
-    name = request.POST.name.strip() or None
-    port = int(request.POST.port.strip()) if request.POST.port.strip() else None
-    type = request.POST.type.strip() or None
-    minecraft_version = request.POST.minecraft_version.strip() or None
-    forge_version = request.POST.forge_version.strip() or None
+    spawner.loadSpawns()
 
-    spawner.create_or_modify_spawn(name=name, new_port=port, new_type=type, new_minecraftVersion=minecraft_version, new_forgeVersion=forge_version)
+    raw_name = request.POST.get('name', '').strip()
+    raw_port = request.POST.get('port', '').strip()
+    raw_type = request.POST.get('type', '').strip()
+    raw_minecraft_version = request.POST.get('minecraft_version', '').strip()
+    raw_forge_version = request.POST.get('forge_version', '').strip()
+
+    create_form = {
+        'name': raw_name,
+        'port': raw_port,
+        'type': raw_type or 'FORGE',
+        'minecraft_version': raw_minecraft_version or 'LATEST',
+        'forge_version': raw_forge_version or 'LATEST',
+    }
+
+    name = None
+    if raw_name:
+        valid_name, name, name_error = validate_spawn_name(raw_name)
+        if not valid_name:
+            return template('./templates/index', spawns=spawner.spawns, create_error=name_error, create_form=create_form)
+
+        if spawner.spawn_name_exists(name):
+            return template('./templates/index', spawns=spawner.spawns, create_error=f"Spawn name '{name}' already exists", create_form=create_form)
+
+        if spawner.spawn_directory_exists(name):
+            return template('./templates/index', spawns=spawner.spawns, create_error=f"Spawn directory for '{name}' already exists on disk", create_form=create_form)
+
+    if raw_port:
+        valid_port, port, port_error = validate_port(raw_port)
+        if not valid_port:
+            return template('./templates/index', spawns=spawner.spawns, create_error=port_error, create_form=create_form)
+
+        is_port_available, port_conflict_error = check_port_availability(port, spawner)
+        if not is_port_available:
+            return template('./templates/index', spawns=spawner.spawns, create_error=port_conflict_error, create_form=create_form)
+    else:
+        port = find_next_available_port(spawner)
+        if port is None:
+            return template('./templates/index', spawns=spawner.spawns, create_error="No available ports left in the allowed range (25565-25665)", create_form=create_form)
+
+    valid_type, server_type, type_error = validate_server_type(raw_type)
+    if not valid_type:
+        return template('./templates/index', spawns=spawner.spawns, create_error=type_error, create_form=create_form)
+
+    minecraft_version_input = raw_minecraft_version or 'LATEST'
+    valid_version, minecraft_version, version_error = validate_minecraft_version(minecraft_version_input)
+    if not valid_version:
+        return template('./templates/index', spawns=spawner.spawns, create_error=version_error, create_form=create_form)
+
+    forge_version_input = raw_forge_version or 'LATEST'
+    valid_forge, forge_version, forge_error = validate_forge_version(forge_version_input, server_type)
+    if not valid_forge:
+        return template('./templates/index', spawns=spawner.spawns, create_error=forge_error, create_form=create_form)
+
+    try:
+        spawner.create_or_modify_spawn(name=name, new_port=port, new_type=server_type, new_minecraftVersion=minecraft_version, new_forgeVersion=forge_version)
+    except Exception as exc:
+        return template('./templates/index', spawns=spawner.spawns, create_error=f"Failed to create server: {str(exc)}", create_form=create_form)
+
     redirect("/")
 
 @get('/spawn/<name>')
@@ -195,4 +260,10 @@ def update_backup_settings(name):
     redirect(f"/spawn/{name}")
 
 
-run(host='0.0.0.0', port=8888, reloader=True, debug=True)
+if __name__ == '__main__':
+    run(
+        host='0.0.0.0',
+        port=8888,
+        reloader=env_flag('BOTTLE_RELOADER', 'false'),
+        debug=env_flag('BOTTLE_DEBUG', 'false'),
+    )

@@ -8,6 +8,9 @@ import os
 from typing import Tuple, Optional
 
 
+ALLOWED_SERVER_TYPES = {"FORGE", "VANILLA"}
+
+
 def validate_port(port: str) -> Tuple[bool, Optional[int], str]:
     """
     Validates port numbers for spawn creation.
@@ -103,6 +106,37 @@ def validate_minecraft_version(version: str) -> Tuple[bool, str, str]:
     return True, version, ""
 
 
+def validate_forge_version(version: str, server_type: str) -> Tuple[bool, str, str]:
+    """
+    Validates Forge version values based on selected server type.
+    """
+    version = (version or "LATEST").strip() or "LATEST"
+    normalized_type = (server_type or "FORGE").strip().upper() or "FORGE"
+
+    # Vanilla servers should not carry a Forge version setting.
+    if normalized_type == "VANILLA":
+        return True, "LATEST", ""
+
+    # FORGE accepts explicit versions or LATEST.
+    if version.upper() == "LATEST":
+        return True, "LATEST", ""
+
+    if not re.match(r'^\d+\.\d+\.\d+(?:\.\d+)?$', version):
+        return False, "", "Forge version must be in format X.Y.Z or X.Y.Z.W (e.g., 47.2.0) or 'LATEST'"
+
+    return True, version, ""
+
+
+def validate_server_type(server_type: str) -> Tuple[bool, str, str]:
+    """
+    Validates server type values supported by this UI.
+    """
+    normalized = (server_type or "FORGE").strip().upper() or "FORGE"
+    if normalized not in ALLOWED_SERVER_TYPES:
+        return False, "", f"Server type must be one of: {', '.join(sorted(ALLOWED_SERVER_TYPES))}"
+    return True, normalized, ""
+
+
 def validate_mod_name(mod: str) -> Tuple[bool, str, str]:
     """
     Validates mod identifiers/slugs for CurseForge.
@@ -155,7 +189,24 @@ def check_port_availability(port: int, spawner, exclude_spawn: Optional[str] = N
             continue
         
         # Check if port conflicts
-        if spawn.port == port:
+        try:
+            spawn_port = int(spawn.port)
+        except (TypeError, ValueError):
+            continue
+
+        if spawn_port == int(port):
             return False, f"Port {port} is already in use by spawn '{spawn_name}'"
     
     return True, ""
+
+
+def find_next_available_port(spawner, start_port: int = 25565, end_port: int = 25665) -> Optional[int]:
+    """
+    Finds the first available port in the allowed range.
+    """
+    for port in range(start_port, end_port + 1):
+        is_available, _ = check_port_availability(port, spawner)
+        if is_available:
+            return port
+
+    return None

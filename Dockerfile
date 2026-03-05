@@ -30,8 +30,7 @@ ENV DOCKER_HOST=unix:///var/run/docker.sock
 ENV TZ=America/Vancouver
 
 # Create a directory for spawn data
-RUN mkdir -p /app/spawn
+RUN mkdir -p /app/spawns
 
-# Set the entrypoint to start the Docker daemon and the application
-ENTRYPOINT ["sh", "-c", "dockerd-entrypoint.sh &"] 
-CMD ["sh", "-c", "sleep 10 && python app.py"]
+# Start Docker daemon, then start the web app in the foreground
+CMD ["sh", "-c", "dockerd-entrypoint.sh & sleep 10 && python app.py"]

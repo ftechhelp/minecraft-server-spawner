@@ -9,8 +9,16 @@ class Spawner:
         self.spawns: dict = {}
         self._startup_sentinel = "/app/tmp/startup_recreate_done"
 
-    def create_or_modify_spawn(self, name: str = str(uuid.uuid4()), new_port: int = 25565, new_volume: str = "./data", new_type: str = "FORGE", new_minecraftVersion: str = "LATEST", new_forgeVersion: str = "LATEST") -> None:
-        spawn = Spawn(name or str(uuid.uuid4()), new_port or 25565, new_volume or "./data", new_type or "FORGE", new_minecraftVersion or "LATEST", new_forgeVersion or "LATEST")
+    def spawn_name_exists(self, name: str) -> bool:
+        return name in self.spawns
+
+    def spawn_directory_exists(self, name: str) -> bool:
+        spawn_folder = os.environ.get("SPAWNS_DIR", "./spawns")
+        return os.path.isdir(os.path.join(spawn_folder, name))
+
+    def create_or_modify_spawn(self, name: str = None, new_port: int = 25565, new_volume: str = "./data", new_type: str = "FORGE", new_minecraftVersion: str = "LATEST", new_forgeVersion: str = "LATEST") -> None:
+        spawn_name = name or str(uuid.uuid4())
+        spawn = Spawn(spawn_name, new_port or 25565, new_volume or "./data", new_type or "FORGE", new_minecraftVersion or "LATEST", new_forgeVersion or "LATEST")
         docker_compose = spawn.get_docker_compose_contents()
 
         if 'services' not in docker_compose:
