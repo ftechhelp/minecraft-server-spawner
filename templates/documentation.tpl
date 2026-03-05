@@ -3,205 +3,138 @@
 <section class="section">
     <div class="container">
         <h1 class="title is-1">Documentation</h1>
-        <p class="subtitle">Learn how to use the Minecraft Server Spawner</p>
-        
+        <p class="subtitle">Complete guide for creating, connecting to, and managing Minecraft servers</p>
+
+        <div class="notification is-info is-light">
+            <p><strong>Host:</strong> This panel is hosted on <strong>minecraft.vfontaine.ca</strong>.</p>
+            <p><strong>Minecraft connection format:</strong> <code>vfontaine.ca:PORT</code> (example: <code>vfontaine.ca:25565</code>).</p>
+        </div>
+
         <div class="content">
-            <!-- Overview -->
             <section class="box">
-                <h2 class="title is-3">Overview</h2>
-                <p>
-                    The Minecraft Server Spawner is a web-based tool that allows you to easily deploy and manage 
-                    multiple Minecraft server instances. It supports both vanilla Minecraft and Forge modded servers, 
-                    giving you complete control over your server configurations through a simple interface.
-                </p>
-            </section>
-
-            <!-- Getting Started -->
-            <section class="box">
-                <h2 class="title is-3">Getting Started</h2>
-                <h3 class="title is-4"><i class="fas fa-plus-circle"></i> Creating a New Server</h3>
+                <h2 class="title is-3">Quick Start (First 5 Minutes)</h2>
                 <ol>
-                    <li>Click the <strong>"Create new spawn"</strong> button on the home page</li>
-                    <li>Enter a unique name for your server</li>
-                    <li>Specify a port number (each server needs its own port)</li>
-                    <li>Select the server type:
-                        <ul>
-                            <li><strong>Vanilla</strong> - Standard Minecraft server</li>
-                            <li><strong>Forge</strong> - Modded Minecraft server</li>
-                        </ul>
-                    </li>
-                    <li>Choose your Minecraft version</li>
-                    <li>If using Forge, select your Forge version</li>
-                    <li>Click <strong>"Create"</strong> to deploy your server</li>
+                    <li>Open <strong>Home</strong> and create a server.</li>
+                    <li>Choose a unique name (or leave name blank to auto-generate one).</li>
+                    <li>Choose a port (or leave blank to auto-pick the next available port).</li>
+                    <li>Pick server type (<strong>FORGE</strong> or <strong>VANILLA</strong>) and versions.</li>
+                    <li>Wait until status is <strong>running</strong> and logs contain <code>Done</code>.</li>
+                    <li>Connect from Minecraft using <code>vfontaine.ca:PORT</code>.</li>
                 </ol>
             </section>
 
-            <!-- Managing Servers -->
             <section class="box">
-                <h2 class="title is-3">Managing Servers</h2>
-                
-                <h3 class="title is-4"><i class="fas fa-play"></i> Starting and Stopping</h3>
-                <ul>
-                    <li><strong>Start:</strong> Click the <span class="tag is-success">Start</span> button to launch your server</li>
-                    <li><strong>Stop:</strong> Click the <span class="tag is-danger">Stop</span> button to gracefully shut down your server</li>
-                    <li><strong>Recreate:</strong> Rebuilds the container if configuration changes are needed</li>
-                </ul>
-
-                <h3 class="title is-4 mt-5"><i class="fas fa-eye"></i> Viewing Server Status</h3>
-                <p>Click on any server from the home page to view its detailed status page, which shows:</p>
-                <ul>
-                    <li>Current running status (Running, Stopped, etc.)</li>
-                    <li>Container information and resource usage</li>
-                    <li>Port configuration</li>
-                    <li>Server version details</li>
-                </ul>
-
-                <h3 class="title is-4 mt-5"><i class="fas fa-file-alt"></i> Viewing Logs</h3>
-                <p>Monitor your server's activity by viewing the logs:</p>
-                <ul>
-                    <li>Navigate to your server's detail page</li>
-                    <li>Click the <strong>"View Logs"</strong> button</li>
-                    <li>Logs update automatically to show real-time server activity</li>
-                </ul>
-            </section>
-
-            <!-- Mod Management -->
-            <section class="box">
-                <h2 class="title is-3">Managing Mods (Forge Only)</h2>
-                <p>For Forge servers, you can manage mods directly from the web interface:</p>
-                
-                <h3 class="title is-4"><i class="fas fa-upload"></i> Adding Mods</h3>
+                <h2 class="title is-3">Connection Instructions</h2>
+                <h3 class="title is-5"><i class="fas fa-plug"></i> Java Edition</h3>
                 <ol>
-                    <li>Go to your server's detail page</li>
-                    <li>Scroll to the <strong>"Mods"</strong> section</li>
-                    <li>Click <strong>"Add Mod"</strong></li>
-                    <li>Select a .jar mod file from your computer</li>
-                    <li>Click <strong>"Upload"</strong></li>
-                    <li>Restart your server for changes to take effect</li>
+                    <li>Open Minecraft Java Edition.</li>
+                    <li>Go to <strong>Multiplayer</strong> → <strong>Add Server</strong>.</li>
+                    <li>For <strong>Server Address</strong>, enter: <code>vfontaine.ca:PORT</code>.</li>
+                    <li>Use the exact port shown on the server card/details page.</li>
                 </ol>
 
-                <h3 class="title is-4 mt-4"><i class="fas fa-exchange-alt"></i> Replacing All Mods</h3>
-                <ol>
-                    <li>Click <strong>"Replace All Mods"</strong></li>
-                    <li>Select multiple .jar files (you can select multiple files at once)</li>
-                    <li>This will remove all existing mods and replace them with your selection</li>
-                    <li>Restart your server for changes to take effect</li>
-                </ol>
+                <table class="table is-fullwidth is-striped">
+                    <thead>
+                        <tr>
+                            <th>Server Name</th>
+                            <th>Port</th>
+                            <th>Address to Share</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>survival-main</td>
+                            <td>25565</td>
+                            <td><code>vfontaine.ca:25565</code></td>
+                        </tr>
+                        <tr>
+                            <td>modded-rpg</td>
+                            <td>25570</td>
+                            <td><code>vfontaine.ca:25570</code></td>
+                        </tr>
+                    </tbody>
+                </table>
 
-                <h3 class="title is-4 mt-4"><i class="fas fa-trash"></i> Removing Mods</h3>
-                <ul>
-                    <li>Click the delete button next to any mod in the list</li>
-                    <li>Restart your server for changes to take effect</li>
-                </ul>
-            </section>
-
-            <!-- Server Configuration -->
-            <section class="box">
-                <h2 class="title is-3">Server Configuration</h2>
-                <h3 class="title is-4"><i class="fas fa-cog"></i> Server Properties</h3>
-                <p>Customize your server settings by editing server.properties:</p>
-                <ol>
-                    <li>Navigate to your server's detail page</li>
-                    <li>Find the <strong>"Server Properties"</strong> section</li>
-                    <li>Edit the properties as needed (difficulty, gamemode, max players, etc.)</li>
-                    <li>Click <strong>"Save"</strong></li>
-                    <li>Restart your server for changes to take effect</li>
-                </ol>
-
-                <h3 class="title is-4 mt-5"><i class="fas fa-terminal"></i> Console Commands</h3>
-                <p>Send commands directly to your server console:</p>
-                <ul>
-                    <li>Go to the <strong>"Console"</strong> section on your server's page</li>
-                    <li>Type your command (e.g., "op PlayerName", "say Hello")</li>
-                    <li>Click <strong>"Send"</strong> to execute</li>
-                </ul>
-            </section>
-
-            <!-- Backup Management -->
-            <section class="box">
-                <h2 class="title is-3">Backup Management</h2>
-                
-                <h3 class="title is-4"><i class="fas fa-save"></i> Creating Backups</h3>
-                <ol>
-                    <li>Navigate to your server's detail page</li>
-                    <li>Find the <strong>"Backups"</strong> section</li>
-                    <li>Enter a name for your backup (optional)</li>
-                    <li>Click <strong>"Create Backup"</strong></li>
-                    <li>The backup will be created in the background</li>
-                </ol>
-
-                <h3 class="title is-4 mt-4"><i class="fas fa-undo"></i> Restoring Backups</h3>
-                <ol>
-                    <li>Navigate to the backups section</li>
-                    <li>Find the backup you want to restore</li>
-                    <li>Click the <strong>"Restore"</strong> button</li>
-                    <li>Your server will be stopped and restored to the backup state</li>
-                </ol>
-
-                <h3 class="title is-4 mt-4"><i class="fas fa-clock"></i> Scheduled Backups</h3>
-                <p>Configure automatic daily backups:</p>
-                <ol>
-                    <li>Go to the <strong>"Backup Settings"</strong> section</li>
-                    <li>Enable <strong>"Daily Backup"</strong></li>
-                    <li>Set the time for automatic backups (hour and minute)</li>
-                    <li>Set retention days (how long to keep old backups)</li>
-                    <li>Click <strong>"Save Settings"</strong></li>
-                </ol>
-            </section>
-
-            <!-- Deleting Servers -->
-            <section class="box">
-                <h2 class="title is-3">Deleting a Server</h2>
-                <div class="notification is-warning">
-                    <strong>Warning:</strong> Deleting a server will permanently remove all its data, including worlds, configurations, and mods.
+                <div class="notification is-warning is-light">
+                    <strong>Important:</strong> If someone can reach the web panel but not the game server, confirm they are using the correct <strong>port</strong> and that the server status is <strong>running</strong>.
                 </div>
-                <ol>
-                    <li>Navigate to the server's detail page</li>
-                    <li>Click the <strong>"Delete Server"</strong> button</li>
-                    <li>Confirm the deletion</li>
-                    <li>All associated data will be permanently removed</li>
-                </ol>
             </section>
 
-            <!-- Troubleshooting -->
+            <section class="box">
+                <h2 class="title is-3">Creating Servers (Robust Validation Rules)</h2>
+                <p>The create flow includes safety checks to prevent common multi-server mistakes:</p>
+                <ul>
+                    <li>Spawn name must be valid (letters/numbers/hyphen/underscore, no path characters).</li>
+                    <li>Duplicate server names are blocked.</li>
+                    <li>Duplicate server directories are blocked.</li>
+                    <li>Ports are limited to <code>25565-25665</code>.</li>
+                    <li>Duplicate ports are blocked.</li>
+                    <li>If port is blank, the app chooses the next free port automatically.</li>
+                    <li>Server type is restricted to <strong>FORGE</strong> or <strong>VANILLA</strong>.</li>
+                    <li>Minecraft and Forge versions are format-validated.</li>
+                </ul>
+            </section>
+
+            <section class="box">
+                <h2 class="title is-3">Server Operations</h2>
+                <div class="columns is-multiline">
+                    <div class="column is-6">
+                        <h3 class="title is-5"><i class="fas fa-play"></i> Start</h3>
+                        <p>Starts a stopped server container.</p>
+                    </div>
+                    <div class="column is-6">
+                        <h3 class="title is-5"><i class="fas fa-stop"></i> Stop</h3>
+                        <p>Stops server cleanly. Use this before sensitive file operations.</p>
+                    </div>
+                    <div class="column is-6">
+                        <h3 class="title is-5"><i class="fas fa-sync"></i> Recreate</h3>
+                        <p>Rebuilds/recreates the container with current config.</p>
+                    </div>
+                    <div class="column is-6">
+                        <h3 class="title is-5"><i class="fas fa-file-alt"></i> Logs</h3>
+                        <p>Check logs for startup success, mod errors, and crash diagnostics.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="box">
+                <h2 class="title is-3">Forge Mods Workflow</h2>
+                <ol>
+                    <li>Open a FORGE server page.</li>
+                    <li>Upload one mod or replace all mods with a selected set of <code>.jar</code> files.</li>
+                    <li>Restart/recreate the server.</li>
+                    <li>Watch logs for dependency/conflict errors.</li>
+                </ol>
+                <p><strong>Tip:</strong> Keep modpack + Forge + Minecraft versions aligned before inviting players.</p>
+            </section>
+
+            <section class="box">
+                <h2 class="title is-3">Backups and Recovery</h2>
+                <ul>
+                    <li>Create manual backups before changing mods or properties.</li>
+                    <li>Enable daily backups and set retention days to control storage.</li>
+                    <li>Restore a backup if a world/mod update causes instability.</li>
+                </ul>
+                <div class="notification is-danger is-light">
+                    <strong>Delete is permanent:</strong> deleting a server removes world data, configs, and mods for that spawn.
+                </div>
+            </section>
+
             <section class="box">
                 <h2 class="title is-3">Troubleshooting</h2>
-                
-                <h3 class="title is-4"><i class="fas fa-exclamation-triangle"></i> Server Won't Start</h3>
-                <ul>
-                    <li>Check the logs for error messages</li>
-                    <li>Ensure the port isn't already in use</li>
-                    <li>Verify that the Minecraft and Forge versions are compatible</li>
-                    <li>Try recreating the container</li>
-                </ul>
+                <h3 class="title is-5">Issue: "I cannot connect"</h3>
+                <ol>
+                    <li>Confirm server status is <strong>running</strong>.</li>
+                    <li>Confirm logs show startup complete (<code>Done</code>).</li>
+                    <li>Confirm address format is exactly <code>vfontaine.ca:PORT</code>.</li>
+                    <li>Confirm you used the correct spawn port.</li>
+                </ol>
 
-                <h3 class="title is-4 mt-4"><i class="fas fa-puzzle-piece"></i> Mods Not Working</h3>
+                <h3 class="title is-5 mt-4">Issue: "Server fails to start"</h3>
                 <ul>
-                    <li>Verify mods are compatible with your Forge and Minecraft versions</li>
-                    <li>Check for mod conflicts in the logs</li>
-                    <li>Ensure the server was restarted after adding/removing mods</li>
-                    <li>Make sure all dependencies for the mods are installed</li>
-                </ul>
-
-                <h3 class="title is-4 mt-4"><i class="fas fa-network-wired"></i> Can't Connect to Server</h3>
-                <ul>
-                    <li>Verify the server is running (check status)</li>
-                    <li>Ensure you're using the correct port number</li>
-                    <li>Check your firewall settings</li>
-                    <li>Confirm the server has fully started (check logs for "Done")</li>
-                </ul>
-            </section>
-
-            <!-- Tips -->
-            <section class="box">
-                <h2 class="title is-3">Tips & Best Practices</h2>
-                <ul>
-                    <li><strong>Regular Backups:</strong> Enable automatic daily backups to prevent data loss</li>
-                    <li><strong>Port Management:</strong> Keep track of which ports are assigned to which servers</li>
-                    <li><strong>Monitor Logs:</strong> Check logs regularly to catch issues early</li>
-                    <li><strong>Test Mods:</strong> Test new mods on a separate server before adding to your main server</li>
-                    <li><strong>Resource Allocation:</strong> Be mindful of system resources when running multiple servers</li>
-                    <li><strong>Version Compatibility:</strong> Always verify mod compatibility with your server versions</li>
+                    <li>Check logs for version mismatch or mod dependency errors.</li>
+                    <li>Verify Minecraft/Forge version compatibility.</li>
+                    <li>Try recreate after fixing configuration.</li>
                 </ul>
             </section>
         </div>

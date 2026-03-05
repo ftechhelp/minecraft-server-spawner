@@ -3,9 +3,47 @@
 <script type="text/javascript">
     $(document).ready(function () 
     {
+        const connectionAddress = 'vfontaine.ca:{{spawn.port}}';
+
         $('#recreateButton').click(() => 
         {
             showLoadingModal('Server is re-creating. Please wait...');
+        });
+
+        $('#copyAddressButton').click(async () => {
+            const $button = $('#copyAddressButton');
+            const originalLabel = $button.html();
+
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(connectionAddress);
+                } else {
+                    const textArea = document.createElement('textarea');
+                    textArea.value = connectionAddress;
+                    textArea.style.position = 'fixed';
+                    textArea.style.opacity = '0';
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                }
+
+                $button.removeClass('is-link').addClass('is-success');
+                $button.html('<span class="icon"><i class="fas fa-check"></i></span><span>Copied</span>');
+                setTimeout(() => {
+                    $button.removeClass('is-success').addClass('is-link');
+                    $button.html(originalLabel);
+                }, 1800);
+            } catch (err) {
+                console.error('Failed to copy server address:', err);
+                $button.removeClass('is-link').addClass('is-danger');
+                $button.html('<span class="icon"><i class="fas fa-times"></i></span><span>Copy failed</span>');
+                setTimeout(() => {
+                    $button.removeClass('is-danger').addClass('is-link');
+                    $button.html(originalLabel);
+                }, 2200);
+            }
         });
 
         $('#startButton').click(() => 
@@ -196,6 +234,16 @@
                             <tr>
                                 <td><strong>Port:</strong></td>
                                 <td>{{spawn.port}}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Connect:</strong></td>
+                                <td>
+                                    <code>vfontaine.ca:{{spawn.port}}</code>
+                                    <button id="copyAddressButton" type="button" class="button is-small is-link is-light ml-2">
+                                        <span class="icon"><i class="fas fa-copy"></i></span>
+                                        <span>Copy</span>
+                                    </button>
+                                </td>
                             </tr>
                             <tr>
                                 <td><strong>Type:</strong></td>
