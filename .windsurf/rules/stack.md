@@ -25,3 +25,5 @@ Here is the link to the bulma css documentation:
 https://bulma.io/documentation/
 
 Use these documents as reference for the stack to make sure you are using the latest versions and best practices.
+
+Always make sure you update the README.md and the in app documentation for the user with the latest changes and improvements.

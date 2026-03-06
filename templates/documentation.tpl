@@ -74,6 +74,7 @@
                     <li>Server type is restricted to <strong>FORGE</strong> or <strong>VANILLA</strong>.</li>
                     <li>Minecraft and Forge versions are format-validated.</li>
                 </ul>
+                <p class="mt-3">The home page create form accepts an optional name, optional port, server type, Minecraft version, and Forge version. Blank values fall back to safe defaults where possible.</p>
             </section>
 
             <section class="box">
@@ -95,6 +96,18 @@
                         <h3 class="title is-5"><i class="fas fa-file-alt"></i> Logs</h3>
                         <p>Check logs for startup success, mod errors, and crash diagnostics.</p>
                     </div>
+                    <div class="column is-6">
+                        <h3 class="title is-5"><i class="fas fa-users"></i> Player Counts</h3>
+                        <p>The spawn page shows live player counts when the running server responds to status queries.</p>
+                    </div>
+                    <div class="column is-6">
+                        <h3 class="title is-5"><i class="fas fa-terminal"></i> Console</h3>
+                        <p>Send console commands directly from the spawn page to a running server container.</p>
+                    </div>
+                    <div class="column is-6">
+                        <h3 class="title is-5"><i class="fas fa-cog"></i> Server Properties</h3>
+                        <p>Edit <code>server.properties</code> from the UI and apply changes with the restart action.</p>
+                    </div>
                 </div>
             </section>
 
@@ -110,12 +123,24 @@
             </section>
 
             <section class="box">
+                <h2 class="title is-3">Logs and Analysis</h2>
+                <ul>
+                    <li>The spawn page can stream logs live and also refresh them on demand.</li>
+                    <li>Use <strong>Analyze</strong> to get a summarized explanation of likely startup issues.</li>
+                    <li>Log analysis is optional and only works when <code>GEMINI_API_KEY</code> is configured for the app.</li>
+                    <li>If Gemini is not configured, the app continues to work normally and only the analysis action is unavailable.</li>
+                </ul>
+            </section>
+
+            <section class="box">
                 <h2 class="title is-3">Backups and Recovery</h2>
                 <ul>
                     <li>Create manual backups before changing mods or properties.</li>
                     <li>Enable daily backups and set retention days to control storage.</li>
                     <li>Restore a backup if a world/mod update causes instability.</li>
                     <li>When deleting a spawn, the latest backup is copied to the root <code>backups</code> archive folder before deletion.</li>
+                    <li>Daily backup scheduling uses the app timezone <code>America/Vancouver</code>.</li>
+                    <li>Backup cleanup removes old backups based on the configured retention days.</li>
                 </ul>
                 <h3 class="title is-5 mt-4">Archived Backups Page</h3>
                 <p>Open <strong>Archived Backups</strong> from the navbar (<code>/backups</code>) to manage preserved backups.</p>
@@ -128,6 +153,10 @@
 
                 <div class="notification is-warning is-light">
                     <strong>Important:</strong> Deleting a spawn still removes that spawn's live files. The archived backup is your preserved restore point.
+                </div>
+
+                <div class="notification is-info is-light">
+                    <strong>Restore behavior:</strong> restoring a backup replaces the target server's current <code>data</code> directory, then restarts the container using that spawn's current name, port, and configured versions.
                 </div>
 
                 <div class="notification is-danger is-light">
