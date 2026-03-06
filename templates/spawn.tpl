@@ -94,6 +94,77 @@
             });
         }
 
+        function openAnalysisModal(title, bodyHtml, articleClass = 'is-info') {
+            $('#logAnalysisModalTitle').text(title);
+            $('#logAnalysisMessage').removeClass('is-info is-success is-warning is-danger').addClass(articleClass);
+            $('#logAnalysisBody').html(bodyHtml);
+            $('#logAnalysisModal').addClass('is-active');
+        }
+
+        function closeAnalysisModal() {
+            $('#logAnalysisModal').removeClass('is-active');
+        }
+
+        function escapeHtml(value) {
+            return $('<div>').text(value || '').html();
+        }
+
+        function renderAnalysisResult(analysis) {
+            const summary = escapeHtml(analysis.summary || 'Analysis complete.');
+
+            if (analysis.outcome === 'normal') {
+                openAnalysisModal(
+                    'Log Analysis',
+                    `<p>${summary}</p>`,
+                    'is-success'
+                );
+                return;
+            }
+
+            const problem = escapeHtml(analysis.problem || 'Problem detected');
+            const details = escapeHtml(analysis.details || 'The logs suggest a likely issue.');
+            openAnalysisModal(
+                'Log Analysis',
+                `<p><strong>Summary:</strong> ${summary}</p><p class="mt-3"><strong>Problem:</strong> ${problem}</p><p class="mt-3"><strong>Details:</strong> ${details}</p>`,
+                'is-warning'
+            );
+        }
+
+        $('#analyzeLogsButton').click(function() {
+            const $button = $(this);
+            const originalHtml = $button.html();
+
+            $button.addClass('is-loading').prop('disabled', true);
+            $button.html('<span class="icon"><i class="fas fa-wand-magic-sparkles"></i></span><span>Analyzing</span>');
+
+            $.ajax({
+                url: window.location.pathname + '/logs/analyze',
+                method: 'POST',
+                dataType: 'json'
+            }).done(function(response) {
+                if (!response.ok) {
+                    openAnalysisModal('Log Analysis', `<p>${escapeHtml(response.error || 'Analysis failed.')}</p>`, 'is-danger');
+                    return;
+                }
+
+                renderAnalysisResult(response.analysis || {});
+            }).fail(function(xhr) {
+                let errorMessage = 'Analysis failed.';
+
+                try {
+                    const payload = JSON.parse(xhr.responseText);
+                    errorMessage = payload.error || errorMessage;
+                } catch (e) {
+                    console.error('Failed to parse analysis error response', e);
+                }
+
+                openAnalysisModal('Log Analysis', `<p>${escapeHtml(errorMessage)}</p>`, 'is-danger');
+            }).always(function() {
+                $button.removeClass('is-loading').prop('disabled', false);
+                $button.html(originalHtml);
+            });
+        });
+
         // Toggle streaming
         function toggleStreaming() {
             isStreaming = !isStreaming;
@@ -121,6 +192,9 @@
             refreshLogs();
             setTimeout(() => $('#refreshLogButton').removeClass('is-loading'), 1000);
         });
+
+        $('#closeLogAnalysisModal, #dismissLogAnalysisModal').click(closeAnalysisModal);
+        $('#logAnalysisModal .modal-background, #logAnalysisModal .delete').click(closeAnalysisModal);
 
         // Scroll to bottom on initial load
         scrollLogsToBottom();
@@ -414,6 +488,10 @@
             <div class="box">
                 <h2 class="title is-5">Logs</h2>
                 <div class="buttons are-small mb-3">
+                    <button id="analyzeLogsButton" type="button" class="button is-primary">
+                        <span class="icon"><i class="fas fa-wand-magic-sparkles"></i></span>
+                        <span>Analyze</span>
+                    </button>
                     <button id="streamButton" class="button is-outlined is-info">
                         <span class="icon"><i class="fas fa-broadcast-tower"></i></span>
                         <span>Stream</span>
@@ -509,6 +587,24 @@
         </div>
     </div>
     %end
+</div>
+
+<div class="modal" id="logAnalysisModal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title" id="logAnalysisModalTitle">Log Analysis</p>
+            <button class="delete" id="closeLogAnalysisModal" aria-label="close"></button>
+        </header>
+        <section class="modal-card-body">
+            <article class="message is-info" id="logAnalysisMessage">
+                <div class="message-body" id="logAnalysisBody"></div>
+            </article>
+        </section>
+        <footer class="modal-card-foot">
+            <button class="button" id="dismissLogAnalysisModal">Close</button>
+        </footer>
+    </div>
 </div>
 
 <!-- Delete Confirmation Modal -->

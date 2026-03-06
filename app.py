@@ -1,6 +1,7 @@
-from bottle import get, post, run, template, request, redirect, BaseRequest, error
+from bottle import get, post, run, template, request, redirect, BaseRequest, error, response
 from utils.spawner import Spawner
 from utils.backup_scheduler import backup_scheduler
+from utils.log_analyzer import log_analyzer, LogAnalysisError
 from utils.validators import (
     validate_spawn_name,
     validate_port,
@@ -13,6 +14,7 @@ from utils.validators import (
 from dotenv import load_dotenv
 import os
 import atexit
+import json
 
 load_dotenv()
 
@@ -176,9 +178,24 @@ def get_logs_content(name):
     spawn.refreshContainerInformation()
     return spawn.get_logs()
 
+@post('/spawn/<name>/logs/analyze')
+def analyze_logs(name):
+    spawn = spawner.spawns[name]
+    spawn.refreshContainerInformation()
+    response.content_type = 'application/json'
+
+    try:
+        analysis = log_analyzer.analyze(spawn)
+        return json.dumps({'ok': True, 'analysis': analysis})
+    except LogAnalysisError as exc:
+        response.status = 400
+        return json.dumps({'ok': False, 'error': str(exc)})
+    except Exception as exc:
+        response.status = 500
+        return json.dumps({'ok': False, 'error': f'Unexpected analysis failure: {str(exc)}'})
+
 @get('/spawn/<name>/status')
 def get_spawn_status(name):
-    import json
     spawn = spawner.spawns[name]
     spawn.refreshContainerInformation()
     status = spawn.get_status()
