@@ -215,17 +215,19 @@
                     <li>Choose one <code>.jar</code> file.</li>
                     <li>Click <strong>Add Mod</strong>.</li>
                     <li>The file is saved into the mods folder.</li>
-                    <li>The server is recreated so the new mod is applied.</li>
+                    <li>The server performs a lightweight restart so the new mod is applied.</li>
                 </ol>
 
                 <h3 class="title is-5">Replace All Mods</h3>
                 <ol>
                     <li>Choose a folder containing the mod files you want to use.</li>
                     <li>Click <strong>Replace Mods</strong>.</li>
-                    <li>The app removes existing mod files from the mods folder.</li>
-                    <li>The app saves the uploaded <code>.jar</code> files.</li>
-                    <li>The app recreates the server to apply the new set.</li>
+                    <li>The app stages the uploaded <code>.jar</code> files in a temporary folder first.</li>
+                    <li>The app swaps the full mods folder in one step instead of deleting old mods one by one.</li>
+                    <li>The app performs a lightweight server restart to apply the new set.</li>
                 </ol>
+
+                <p>This flow is optimized for larger mod batches and is much faster when replacing packs with 100 or more mods.</p>
 
                 <h3 class="title is-5">Delete a mod</h3>
                 <ol>

@@ -15,7 +15,8 @@ The point of this project was to keep everything as light and simple as possible
 - View live status, current player counts, and server logs.
 - Send console commands directly to a running server.
 - Edit `server.properties` from the web interface and restart the server with the updated configuration.
-- Upload a single mod file or replace the full mods folder for Forge servers.
+- Upload a single mod file or replace the full mods folder for Forge servers using a lightweight restart flow.
+- Optimized bulk mod replacement for large uploads by staging files and swapping the mods directory before a lightweight restart.
 - Create manual backups, enable daily backups, and configure retention days per server.
 - Archive the latest backup automatically before deleting a spawn.
 - Restore archived backups into a brand new server with a new name and next available port.
@@ -127,6 +128,10 @@ Each spawn page currently supports:
 - direct editing of `server.properties`
 - manual backups, restore, delete, and daily backup scheduling
 
+For large Forge modpack changes, the `Replace Mods` flow is optimized for batches of 100+ files. The app now stages uploaded `.jar` files in a temporary folder, swaps the mods directory in one step, and performs a lightweight restart instead of a full rebuild-oriented recreate.
+
+Single-file mod uploads also use the lightweight restart flow, which makes routine mod changes faster than the previous recreate/build behavior.
+
 The connection address shown on each spawn page uses `SERVER_CONNECTION_HOST` plus the spawn port.
 
 ### Backups
@@ -142,6 +147,7 @@ The connection address shown on each spawn page uses `SERVER_CONNECTION_HOST` pl
 - On startup, the app recreates loaded spawns once so their compose definitions use the correct absolute data paths.
 - Player counts are only available when the Minecraft server responds to status queries.
 - Updating `server.properties` triggers a restart flow.
+- Replacing all mods is faster than before because it avoids deleting old mods one by one and avoids a full rebuild-oriented compose recreate when only the mod files changed.
 - Restoring a backup replaces the target spawn's current `data` directory before restarting the container.
 
 ## License

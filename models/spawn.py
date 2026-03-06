@@ -65,6 +65,24 @@ class Spawn:
         print(f"Spawn {self.name} is started.")
         os.chdir("../..")
 
+    def restart(self) -> None:
+        previous_directory = os.getcwd()
+        os.chdir(self.directory)
+        try:
+            self.__updateContainerInformation()
+            if self.container == None:
+                docker.compose.up(detach=True, force_recreate=False, recreate=False, attach_dependencies=False, build=False)
+            elif self.container.state.status == "running":
+                docker.compose.stop()
+                docker.compose.start()
+            else:
+                docker.compose.start()
+            print(f"Spawn {self.name} is restarted.")
+            self.__updateContainerInformation()
+            self.clear_pending_deletions()
+        finally:
+            os.chdir(previous_directory)
+
     def purge(self) -> None:
         os.chdir(self.directory)
         docker.compose.down(remove_images="all", volumes=True, remove_orphans=True)
@@ -655,37 +673,47 @@ class Spawn:
 
     def replace_mods_from_uploads(self, files: list) -> None:
         try:
-            print(f"[replace_mods_from_uploads] Received {len(files) if files else 0} files for {self.name}")
-            os.makedirs(self.mods_dir, exist_ok=True)
-            
-            # Remove current mods
-            removed_count = 0
-            for f in os.listdir(self.mods_dir):
-                fp = os.path.join(self.mods_dir, f)
-                if os.path.isfile(fp):
-                    os.remove(fp)
-                    removed_count += 1
-            print(f"[replace_mods_from_uploads] Removed {removed_count} existing mods")
-            
-            # Save uploaded mods
+            uploads = files or []
+            print(f"[replace_mods_from_uploads] Received {len(uploads)} files for {self.name}")
+
+            parent_dir = os.path.dirname(self.mods_dir)
+            os.makedirs(parent_dir, exist_ok=True)
+
+            temp_mods_dir = tempfile.mkdtemp(prefix=f"{self.name}-mods-", dir=parent_dir)
+            previous_mods_dir = ""
             saved_count = 0
-            for upload in files or []:
-                filename = os.path.basename(upload.filename)
-                print(f"[replace_mods_from_uploads] Processing file: {filename}")
-                if not filename:
-                    continue
-                # Only accept jar files for mods
-                if not filename.lower().endswith(".jar"):
-                    print(f"[replace_mods_from_uploads] Skipping non-jar file: {filename}")
-                    continue
-                dest = os.path.join(self.mods_dir, filename)
-                upload.save(dest, overwrite=True)
-                saved_count += 1
-                print(f"[replace_mods_from_uploads] Saved: {filename}")
-            
-            print(f"[replace_mods_from_uploads] Saved {saved_count} mods, restarting server...")
-            # Restart to apply changes
-            self.up()
+            skipped_count = 0
+
+            try:
+                for upload in uploads:
+                    filename = os.path.basename((upload.filename or "").strip())
+                    if not filename:
+                        continue
+                    if not filename.lower().endswith(".jar"):
+                        skipped_count += 1
+                        continue
+                    dest = os.path.join(temp_mods_dir, filename)
+                    upload.save(dest, overwrite=True)
+                    saved_count += 1
+
+                if os.path.isdir(self.mods_dir):
+                    previous_mods_dir = tempfile.mkdtemp(prefix=f"{self.name}-mods-old-", dir=parent_dir)
+                    shutil.rmtree(previous_mods_dir)
+                    os.replace(self.mods_dir, previous_mods_dir)
+
+                os.replace(temp_mods_dir, self.mods_dir)
+                temp_mods_dir = ""
+
+                print(f"[replace_mods_from_uploads] Replaced mods for {self.name} with {saved_count} jar files")
+                if skipped_count:
+                    print(f"[replace_mods_from_uploads] Skipped {skipped_count} non-jar files for {self.name}")
+
+                self.restart()
+            finally:
+                if temp_mods_dir and os.path.isdir(temp_mods_dir):
+                    shutil.rmtree(temp_mods_dir, ignore_errors=True)
+                if previous_mods_dir and os.path.isdir(previous_mods_dir):
+                    shutil.rmtree(previous_mods_dir, ignore_errors=True)
         except Exception as e:
             print(f"Error replacing mods for {self.name}: {str(e)}")
             import traceback
@@ -701,7 +729,7 @@ class Spawn:
                 return
             dest = os.path.join(self.mods_dir, filename)
             file_upload.save(dest, overwrite=True)
-            self.up()
+            self.restart()
         except Exception as e:
             print(f"Error adding mod for {self.name}: {str(e)}")
 
