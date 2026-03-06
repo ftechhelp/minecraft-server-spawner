@@ -1,4 +1,4 @@
-from bottle import get, post, run, template, request, redirect, BaseRequest, error, response
+from bottle import get, post, run, template as bottle_template, request, redirect, BaseRequest, error, response
 from utils.spawner import Spawner
 from utils.backup_scheduler import backup_scheduler
 from utils.log_analyzer import log_analyzer, LogAnalysisError
@@ -22,6 +22,20 @@ load_dotenv()
 def env_flag(name: str, default: str = "false") -> bool:
     return os.environ.get(name, default).strip().lower() in {"1", "true", "yes", "on"}
 
+
+WEB_PANEL_URL = os.environ.get('WEB_PANEL_URL', 'http://localhost:8888').strip() or 'http://localhost:8888'
+SERVER_CONNECTION_HOST = os.environ.get('SERVER_CONNECTION_HOST', 'localhost').strip() or 'localhost'
+
+
+def render_template(template_path: str, **kwargs):
+    template_context = {
+        'web_panel_url': WEB_PANEL_URL,
+        'server_connection_host': SERVER_CONNECTION_HOST,
+        'server_connection_example': f'{SERVER_CONNECTION_HOST}:25565',
+    }
+    template_context.update(kwargs)
+    return bottle_template(template_path, **template_context)
+
 # Allow large multi-file uploads (e.g., a folder of .jar mods)
 # Default is ~100KB; increase to 512MB to support mod folder uploads
 BaseRequest.MEMFILE_MAX = 512 * 1024 * 1024
@@ -37,11 +51,11 @@ atexit.register(backup_scheduler.stop)
 @get('/')
 def index():
     spawner.loadSpawns()
-    return template('./templates/index', spawns=spawner.spawns, create_error=None, create_form={})
+    return render_template('./templates/index', spawns=spawner.spawns, create_error=None, create_form={})
 
 @get('/docs')
 def documentation():
-    return template('./templates/documentation')
+    return render_template('./templates/documentation')
 
 
 @get('/backups')
@@ -50,7 +64,7 @@ def archived_backups():
     archived = spawner.list_archived_backups()
     notice = request.query.get('notice', '').strip()
     page_error = request.query.get('error', '').strip()
-    return template('./templates/archived_backups', archived_backups=archived, notice=notice, page_error=page_error)
+    return render_template('./templates/archived_backups', archived_backups=archived, notice=notice, page_error=page_error)
 
 @post('/spawn')
 def spawn():
@@ -74,45 +88,45 @@ def spawn():
     if raw_name:
         valid_name, name, name_error = validate_spawn_name(raw_name)
         if not valid_name:
-            return template('./templates/index', spawns=spawner.spawns, create_error=name_error, create_form=create_form)
+            return render_template('./templates/index', spawns=spawner.spawns, create_error=name_error, create_form=create_form)
 
         if spawner.spawn_name_exists(name):
-            return template('./templates/index', spawns=spawner.spawns, create_error=f"Spawn name '{name}' already exists", create_form=create_form)
+            return render_template('./templates/index', spawns=spawner.spawns, create_error=f"Spawn name '{name}' already exists", create_form=create_form)
 
         if spawner.spawn_directory_exists(name):
-            return template('./templates/index', spawns=spawner.spawns, create_error=f"Spawn directory for '{name}' already exists on disk", create_form=create_form)
+            return render_template('./templates/index', spawns=spawner.spawns, create_error=f"Spawn directory for '{name}' already exists on disk", create_form=create_form)
 
     if raw_port:
         valid_port, port, port_error = validate_port(raw_port)
         if not valid_port:
-            return template('./templates/index', spawns=spawner.spawns, create_error=port_error, create_form=create_form)
+            return render_template('./templates/index', spawns=spawner.spawns, create_error=port_error, create_form=create_form)
 
         is_port_available, port_conflict_error = check_port_availability(port, spawner)
         if not is_port_available:
-            return template('./templates/index', spawns=spawner.spawns, create_error=port_conflict_error, create_form=create_form)
+            return render_template('./templates/index', spawns=spawner.spawns, create_error=port_conflict_error, create_form=create_form)
     else:
         port = find_next_available_port(spawner)
         if port is None:
-            return template('./templates/index', spawns=spawner.spawns, create_error="No available ports left in the allowed range (25565-25665)", create_form=create_form)
+            return render_template('./templates/index', spawns=spawner.spawns, create_error="No available ports left in the allowed range (25565-25665)", create_form=create_form)
 
     valid_type, server_type, type_error = validate_server_type(raw_type)
     if not valid_type:
-        return template('./templates/index', spawns=spawner.spawns, create_error=type_error, create_form=create_form)
+        return render_template('./templates/index', spawns=spawner.spawns, create_error=type_error, create_form=create_form)
 
     minecraft_version_input = raw_minecraft_version or 'LATEST'
     valid_version, minecraft_version, version_error = validate_minecraft_version(minecraft_version_input)
     if not valid_version:
-        return template('./templates/index', spawns=spawner.spawns, create_error=version_error, create_form=create_form)
+        return render_template('./templates/index', spawns=spawner.spawns, create_error=version_error, create_form=create_form)
 
     forge_version_input = raw_forge_version or 'LATEST'
     valid_forge, forge_version, forge_error = validate_forge_version(forge_version_input, server_type)
     if not valid_forge:
-        return template('./templates/index', spawns=spawner.spawns, create_error=forge_error, create_form=create_form)
+        return render_template('./templates/index', spawns=spawner.spawns, create_error=forge_error, create_form=create_form)
 
     try:
         spawner.create_or_modify_spawn(name=name, new_port=port, new_type=server_type, new_minecraftVersion=minecraft_version, new_forgeVersion=forge_version)
     except Exception as exc:
-        return template('./templates/index', spawns=spawner.spawns, create_error=f"Failed to create server: {str(exc)}", create_form=create_form)
+        return render_template('./templates/index', spawns=spawner.spawns, create_error=f"Failed to create server: {str(exc)}", create_form=create_form)
 
     redirect("/")
 
@@ -129,7 +143,7 @@ def view_spawn(name):
     players = server_status.get("players") if isinstance(server_status, dict) else {}
     player_count = players.get("online") if isinstance(players, dict) else None
     player_capacity = players.get("max") if isinstance(players, dict) else None
-    return template('./templates/spawn', spawn=spawn, mods=spawn.list_mods(), default_backup_name=default_backup_name, player_count=player_count, player_capacity=player_capacity)
+    return render_template('./templates/spawn', spawn=spawn, mods=spawn.list_mods(), default_backup_name=default_backup_name, player_count=player_count, player_capacity=player_capacity)
 
 @post('/spawn/<name>/recreate')
 def recreate_spawn(name):
@@ -174,7 +188,7 @@ def refresh_spawn(name):
 @get('/spawn/<name>/logs')
 def download_logs(name):
     spawn = spawner.spawns[name]
-    return template('./templates/spawn_logs', logs=spawn.get_logs())
+    return render_template('./templates/spawn_logs', logs=spawn.get_logs())
 
 @get('/spawn/<name>/logs/content')
 def get_logs_content(name):
@@ -336,7 +350,7 @@ def delete_archived_backup():
 
 @error(404)
 def error404(err):
-    return template(
+    return render_template(
         './templates/error',
         status_code=404,
         title='Page not found',
@@ -351,7 +365,7 @@ def error500(err):
     details = str(exception_obj) if exception_obj else str(err)
     details = details or 'No exception details were captured.'
 
-    return template(
+    return render_template(
         './templates/error',
         status_code=500,
         title='Unexpected server error',

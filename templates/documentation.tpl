@@ -7,9 +7,9 @@
             <p class="subtitle">Complete guide for every page, every main action, and the most common recovery workflows in this app</p>
 
             <div class="notification is-info is-light">
-                <p><strong>Web panel:</strong> <code>minecraft.vfontaine.ca</code></p>
-                <p><strong>Minecraft connection format:</strong> <code>vfontaine.ca:PORT</code></p>
-                <p><strong>Example:</strong> <code>vfontaine.ca:25565</code></p>
+                <p><strong>Web panel:</strong> <code>{{web_panel_url}}</code></p>
+                <p><strong>Minecraft connection format:</strong> <code>{{server_connection_host}}:PORT</code></p>
+                <p><strong>Example:</strong> <code>{{server_connection_example}}</code></p>
             </div>
 
             <section class="box">
@@ -32,7 +32,7 @@
                     <li>Wait for the status to become <strong>running</strong>.</li>
                     <li>Watch the logs until startup finishes and the server is ready.</li>
                     <li>Copy the connection address shown on the server page.</li>
-                    <li>Join from Minecraft using <code>vfontaine.ca:PORT</code>.</li>
+                    <li>Join from Minecraft using <code>{{server_connection_host}}:PORT</code>.</li>
                     <li>Create a manual backup before making major changes.</li>
                 </ol>
             </section>
@@ -191,11 +191,11 @@
                     <li>Open the spawn detail page.</li>
                     <li>Confirm the server status is <strong>running</strong>.</li>
                     <li>Copy the connection address shown in the server info card.</li>
-                    <li>Give players the address in the form <code>vfontaine.ca:PORT</code>.</li>
+                    <li>Give players the address in the form <code>{{server_connection_host}}:PORT</code>.</li>
                     <li>From Minecraft Java Edition, open <strong>Multiplayer</strong> and paste the address into the server entry.</li>
                 </ol>
 
-                <p>If you are running this app on a different domain or host than this hosted instance, replace <code>vfontaine.ca</code> with your own hostname or IP and keep the same spawn port.</p>
+                <p>The host portion of the address comes from the configured <code>SERVER_CONNECTION_HOST</code> environment variable. Players always use that host plus the spawn port.</p>
             </section>
 
             <section class="box">
@@ -423,7 +423,7 @@
                 <h3 class="title is-5">Problem: I cannot connect to the game server</h3>
                 <ol>
                     <li>Open the spawn page and verify the status is <strong>running</strong>.</li>
-                    <li>Verify the connection address is exactly <code>vfontaine.ca:PORT</code> for this hosted panel.</li>
+                    <li>Verify the connection address is exactly <code>{{server_connection_host}}:PORT</code> for your current deployment.</li>
                     <li>Verify you are using the correct spawn port, not just the web panel port.</li>
                     <li>Check the logs and wait for normal startup completion before testing again.</li>
                     <li>If the server was just created, give it time to download and initialize the selected version.</li>

@@ -44,6 +44,7 @@ The point of this project was to keep everything as light and simple as possible
     ```sh
     cp .env.example .env
     # Optional: set GEMINI_API_KEY to enable log analysis
+    # Adjust WEB_PANEL_URL and SERVER_CONNECTION_HOST for your deployment
     ```
 
 ## Recommended Deployment
@@ -54,7 +55,12 @@ The recommended way to run the app is with Docker Compose:
 docker compose up --build
 ```
 
-This starts the web panel on `http://localhost:8888` and exposes the Minecraft server port range `25565-25665`.
+This starts the web panel on `http://localhost:8888` by default and exposes the Minecraft server port range `25565-25665`.
+
+You can override the displayed panel URL and the player-facing Minecraft host through `.env`:
+
+- `WEB_PANEL_URL` controls the URL shown in the UI for the web panel and the navbar home link.
+- `SERVER_CONNECTION_HOST` controls the host name shown to players in server connection strings such as `HOST:25565`.
 
 Persistent data is stored in:
 
@@ -69,11 +75,13 @@ The current Docker Compose configuration sets these runtime environment variable
 
 - `SPAWNS_DIR` - directory where spawn folders are stored. Default: `./spawns`
 - `ARCHIVED_BACKUPS_DIR` - directory for archived backups preserved after server deletion. Default: `./backups`
+- `WEB_PANEL_URL` - full URL used by the UI for the web panel address and navbar home link. Default: `http://localhost:8888`
+- `SERVER_CONNECTION_HOST` - host name or IP shown to players when connecting to Minecraft servers. Default: `localhost`
 - `GEMINI_API_KEY` - optional API key used for log analysis
 - `GEMINI_MODEL` - optional Gemini model name for log analysis
 - `TZ` - timezone used by the app and backup scheduler. Current configuration: `America/Vancouver`
 
-Only `GEMINI_API_KEY` is expected in the `.env` file in the current setup. The other values are already defined in `docker-compose.yml`.
+`docker-compose.yml` now provides defaults for these variables, and `.env.example` includes the same values so you can override them easily per deployment.
 
 If `GEMINI_API_KEY` is not set, the app still works normally, but the log analysis feature will return a configuration error instead of an analysis.
 
@@ -93,7 +101,7 @@ Using Python directly:
 python app.py
 ```
 
-Then access the web interface at `http://localhost:8888`.
+Then access the web interface at the URL configured by `WEB_PANEL_URL`. By default, that is `http://localhost:8888`.
 
 ### Create a server
 
@@ -118,6 +126,8 @@ Each spawn page currently supports:
 - mod uploads and full mod-folder replacement
 - direct editing of `server.properties`
 - manual backups, restore, delete, and daily backup scheduling
+
+The connection address shown on each spawn page uses `SERVER_CONNECTION_HOST` plus the spawn port.
 
 ### Backups
 

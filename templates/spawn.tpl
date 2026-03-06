@@ -3,7 +3,7 @@
 <script type="text/javascript">
     $(document).ready(function () 
     {
-        const connectionAddress = 'vfontaine.ca:{{spawn.port}}';
+        const connectionAddress = '{{server_connection_host}}:{{spawn.port}}';
 
         $('#recreateButton').click(() => 
         {
@@ -354,7 +354,7 @@
                             <tr>
                                 <td><strong>Connect:</strong></td>
                                 <td>
-                                    <code>vfontaine.ca:{{spawn.port}}</code>
+                                    <code>{{server_connection_host}}:{{spawn.port}}</code>
                                     <button id="copyAddressButton" type="button" class="button is-small is-link is-light ml-2">
                                         <span class="icon"><i class="fas fa-copy"></i></span>
                                         <span>Copy</span>
