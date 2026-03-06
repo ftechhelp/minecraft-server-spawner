@@ -125,7 +125,11 @@ def view_spawn(name):
     spawn.reload_backup_settings()
     tz = ZoneInfo("America/Vancouver")
     default_backup_name = f"backup_{datetime.now(tz=tz).strftime('%Y%m%d_%H%M%S')}"
-    return template('./templates/spawn', spawn=spawn, mods=spawn.list_mods(), default_backup_name=default_backup_name)
+    server_status = spawn.get_server_status() or {}
+    players = server_status.get("players") if isinstance(server_status, dict) else {}
+    player_count = players.get("online") if isinstance(players, dict) else None
+    player_capacity = players.get("max") if isinstance(players, dict) else None
+    return template('./templates/spawn', spawn=spawn, mods=spawn.list_mods(), default_backup_name=default_backup_name, player_count=player_count, player_capacity=player_capacity)
 
 @post('/spawn/<name>/recreate')
 def recreate_spawn(name):
@@ -199,7 +203,12 @@ def get_spawn_status(name):
     spawn = spawner.spawns[name]
     spawn.refreshContainerInformation()
     status = spawn.get_status()
-    return json.dumps({'status': status})
+    server_status = spawn.get_server_status() or {}
+    players = server_status.get('players') if isinstance(server_status, dict) else {}
+    player_count = players.get('online') if isinstance(players, dict) else None
+    player_capacity = players.get('max') if isinstance(players, dict) else None
+    response.content_type = 'application/json'
+    return json.dumps({'status': status, 'player_count': player_count, 'player_capacity': player_capacity})
 
 @post('/spawn/<name>/mods/delete')
 def delete_mod(name):

@@ -109,6 +109,43 @@
             return $('<div>').text(value || '').html();
         }
 
+        function renderStatus(status) {
+            let tagClass = 'is-success';
+            if (status === 'running') {
+                tagClass = 'is-success';
+            } else if (['created', 'restarting', 'removing', 'paused', 'exited'].includes(status)) {
+                tagClass = 'is-warning';
+            } else {
+                tagClass = 'is-danger';
+            }
+
+            $('#spawnStatusValue').html(`<span class="tag ${tagClass}">${escapeHtml(status || 'N/A')}</span>`);
+        }
+
+        function renderPlayerCount(playerCount, playerCapacity) {
+            const $playerCountValue = $('#playerCountValue');
+
+            if (playerCount === '') {
+                playerCount = null;
+            }
+
+            if (playerCapacity === '') {
+                playerCapacity = null;
+            }
+
+            if (playerCount !== null && playerCount !== undefined && playerCapacity !== null && playerCapacity !== undefined) {
+                $playerCountValue.html(`<span class="tag is-info">${escapeHtml(String(playerCount))} / ${escapeHtml(String(playerCapacity))}</span>`);
+                return;
+            }
+
+            if (playerCount !== null && playerCount !== undefined) {
+                $playerCountValue.html(`<span class="tag is-info">${escapeHtml(String(playerCount))}</span>`);
+                return;
+            }
+
+            $playerCountValue.html('<span class="has-text-grey">Unavailable</span>');
+        }
+
         function renderAnalysisResult(analysis) {
             const summary = escapeHtml(analysis.summary || 'Analysis complete.');
 
@@ -250,26 +287,19 @@
             }
         });
 
+        const initialPlayerCount = $('#playerCountValue').data('player-count');
+        const initialPlayerCapacity = $('#playerCountValue').data('player-capacity');
+        renderStatus('{{spawn.get_status()}}');
+        renderPlayerCount(initialPlayerCount, initialPlayerCapacity);
+
         // Poll for status updates every 3 seconds
         setInterval(function() {
             $.get(window.location.pathname + '/status', function(data) {
                 try {
-                    const response = JSON.parse(data);
+                    const response = typeof data === 'string' ? JSON.parse(data) : data;
                     const status = response.status;
-                    const $statusCell = $('td:contains("Status:")').parent().find('td:last');
-                    
-                    if ($statusCell.length) {
-                        let tagClass = 'is-success';
-                        if (status === 'running') {
-                            tagClass = 'is-success';
-                        } else if (['created', 'restarting', 'removing', 'paused', 'exited'].includes(status)) {
-                            tagClass = 'is-warning';
-                        } else {
-                            tagClass = 'is-danger';
-                        }
-                        
-                        $statusCell.html(`<span class="tag ${tagClass}">${status}</span>`);
-                    }
+                    renderStatus(status);
+                    renderPlayerCount(response.player_count, response.player_capacity);
                 } catch (e) {
                     console.error('Error updating status:', e);
                 }
@@ -295,7 +325,7 @@
                             </tr>
                             <tr>
                                 <td><strong>Status:</strong></td>
-                                <td>
+                                <td id="spawnStatusValue">
                                     %if spawn.get_status() == "running": 
                                         <span class="tag is-success">{{spawn.get_status()}}</span>
                                     %elif spawn.get_status() in ["created", "restarting", "removing", "paused", "exited"]:
@@ -308,6 +338,18 @@
                             <tr>
                                 <td><strong>Port:</strong></td>
                                 <td>{{spawn.port}}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Players Online:</strong></td>
+                                <td id="playerCountValue" data-player-count="{{player_count if player_count is not None else ''}}" data-player-capacity="{{player_capacity if player_capacity is not None else ''}}">
+                                    %if player_count is not None and player_capacity is not None:
+                                        <span class="tag is-info">{{player_count}} / {{player_capacity}}</span>
+                                    %elif player_count is not None:
+                                        <span class="tag is-info">{{player_count}}</span>
+                                    %else:
+                                        <span class="has-text-grey">Unavailable</span>
+                                    %end
+                                </td>
                             </tr>
                             <tr>
                                 <td><strong>Connect:</strong></td>

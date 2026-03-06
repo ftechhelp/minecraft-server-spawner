@@ -4,7 +4,8 @@ from python_on_whales import docker, Container
 import shutil
 import tempfile
 import zipfile
-import os
+import socket
+import struct
 from bs4 import BeautifulSoup
 import json
 
@@ -121,6 +122,53 @@ class Spawn:
         
         status = self.container.state.status
         return status
+
+    def get_player_count(self):
+        server_status = self.get_server_status()
+        if not server_status:
+            return None
+
+        players = server_status.get("players")
+        if not isinstance(players, dict):
+            return None
+
+        online = players.get("online")
+        if isinstance(online, int):
+            return online
+
+        return None
+
+    def get_player_capacity(self):
+        server_status = self.get_server_status()
+        if not server_status:
+            return None
+
+        players = server_status.get("players")
+        if not isinstance(players, dict):
+            return None
+
+        maximum = players.get("max")
+        if isinstance(maximum, int):
+            return maximum
+
+        return None
+
+    def get_server_status(self):
+        if self.get_status() != "running":
+            return None
+
+        try:
+            port = int(self.port)
+        except (TypeError, ValueError):
+            return None
+
+        for host in self.__get_status_hosts():
+            try:
+                return self.__query_minecraft_status(host, port)
+            except Exception:
+                continue
+
+        return None
 
     def _get_latest_backup_path(self) -> str:
         if not os.path.isdir(self.backups_dir):
@@ -395,6 +443,84 @@ class Spawn:
             os.makedirs(self.directory)
         # Ensure data/mods directory exists
         os.makedirs(self.mods_dir, exist_ok=True)
+
+    def __get_status_hosts(self) -> list:
+        hosts = ["127.0.0.1", "localhost", "host.docker.internal", self.name]
+        unique_hosts = []
+
+        for host in hosts:
+            if host and host not in unique_hosts:
+                unique_hosts.append(host)
+
+        return unique_hosts
+
+    def __query_minecraft_status(self, host: str, port: int) -> dict:
+        address = host.encode("utf-8")
+        handshake_payload = b"".join([
+            self.__pack_varint(0),
+            self.__pack_varint(754),
+            self.__pack_varint(len(address)),
+            address,
+            struct.pack(">H", port),
+            self.__pack_varint(1),
+        ])
+
+        with socket.create_connection((host, port), timeout=1.5) as sock:
+            sock.sendall(self.__pack_varint(len(handshake_payload)) + handshake_payload)
+            sock.sendall(self.__pack_varint(1) + self.__pack_varint(0))
+
+            self.__read_varint(sock)
+            packet_id = self.__read_varint(sock)
+            if packet_id != 0:
+                raise ValueError("Unexpected Minecraft status packet")
+
+            payload_length = self.__read_varint(sock)
+            payload = self.__recv_exact(sock, payload_length)
+            return json.loads(payload.decode("utf-8"))
+
+    def __pack_varint(self, value: int) -> bytes:
+        data = bytearray()
+
+        while True:
+            current_byte = value & 0x7F
+            value >>= 7
+            if value:
+                current_byte |= 0x80
+            data.append(current_byte)
+            if not value:
+                break
+
+        return bytes(data)
+
+    def __read_varint(self, sock) -> int:
+        result = 0
+        shift = 0
+
+        while True:
+            raw_byte = sock.recv(1)
+            if not raw_byte:
+                raise ConnectionError("Connection closed while reading Minecraft status")
+
+            current_byte = raw_byte[0]
+            result |= (current_byte & 0x7F) << shift
+
+            if not (current_byte & 0x80):
+                return result
+
+            shift += 7
+            if shift >= 35:
+                raise ValueError("Minecraft status varint is too large")
+
+    def __recv_exact(self, sock, size: int) -> bytes:
+        chunks = bytearray()
+
+        while len(chunks) < size:
+            chunk = sock.recv(size - len(chunks))
+            if not chunk:
+                raise ConnectionError("Connection closed while reading Minecraft status payload")
+            chunks.extend(chunk)
+
+        return bytes(chunks)
 
     def __updateContainerInformation(self) -> None:
         try:
