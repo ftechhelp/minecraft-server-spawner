@@ -109,6 +109,160 @@
             return $('<div>').text(value || '').html();
         }
 
+        function formatBytes(bytes) {
+            const value = Number(bytes) || 0;
+            if (value <= 0) {
+                return '0 B';
+            }
+
+            const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const exponent = Math.min(Math.floor(Math.log(value) / Math.log(1024)), units.length - 1);
+            const amount = value / Math.pow(1024, exponent);
+            const precision = exponent === 0 ? 0 : 1;
+            return `${amount.toFixed(precision)} ${units[exponent]}`;
+        }
+
+        function formatDuration(seconds) {
+            if (!isFinite(seconds) || seconds < 0) {
+                return 'Calculating...';
+            }
+
+            if (seconds < 60) {
+                return `${Math.max(1, Math.round(seconds))} sec`;
+            }
+
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = Math.round(seconds % 60);
+            return `${minutes} min ${remainingSeconds} sec`;
+        }
+
+        function resetBulkUploadProgress() {
+            $('#bulkUploadProgressWrapper').addClass('is-hidden');
+            $('#bulkUploadProgressBar').val(0);
+            $('#bulkUploadProgressPercent').text('0%');
+            $('#bulkUploadProgressTransferred').text('0 B / 0 B');
+            $('#bulkUploadProgressSpeed').text('0 B/s');
+            $('#bulkUploadProgressEta').text('Waiting...');
+            $('#bulkUploadProgressStatus').text('Preparing upload...');
+        }
+
+        function showBulkUploadProgress() {
+            $('#bulkUploadProgressWrapper').removeClass('is-hidden');
+        }
+
+        function setBulkUploadProcessingState() {
+            $('#bulkUploadProgressBar').val(100);
+            $('#bulkUploadProgressPercent').text('100%');
+            $('#bulkUploadProgressEta').text('Processing...');
+            $('#bulkUploadProgressStatus').text('Upload complete. Applying mods and restarting server...');
+        }
+
+        function requestJson(url, method = 'POST', body = null) {
+            return fetch(url, {
+                method,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body
+            }).then(async (response) => {
+                let payload = {};
+
+                try {
+                    payload = await response.json();
+                } catch (error) {
+                    console.error('Failed to parse JSON response', error);
+                }
+
+                if (!response.ok || !payload.ok) {
+                    throw new Error(payload.error || 'Request failed.');
+                }
+
+                return payload;
+            });
+        }
+
+        function uploadBulkBatchFile(url, batchId, file, uploadedBytesBeforeFile, totalBytes, fileIndex, totalFiles, startTime) {
+            return new Promise((resolve, reject) => {
+                const formData = new FormData();
+                formData.append('batch_id', batchId);
+                formData.append('mod', file, file.name);
+
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', url, true);
+                xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                xhr.setRequestHeader('Accept', 'application/json');
+
+                xhr.upload.addEventListener('progress', function(progressEvent) {
+                    if (!progressEvent.lengthComputable) {
+                        return;
+                    }
+
+                    const totalLoaded = uploadedBytesBeforeFile + progressEvent.loaded;
+                    const percent = totalBytes > 0 ? Math.min(100, Math.round((totalLoaded / totalBytes) * 100)) : 0;
+                    const elapsedSeconds = Math.max((Date.now() - startTime) / 1000, 0.1);
+                    const bytesPerSecond = totalLoaded / elapsedSeconds;
+                    const remainingBytes = Math.max(totalBytes - totalLoaded, 0);
+                    const etaSeconds = bytesPerSecond > 0 ? remainingBytes / bytesPerSecond : Infinity;
+
+                    $('#bulkUploadProgressBar').val(percent);
+                    $('#bulkUploadProgressPercent').text(`${percent}%`);
+                    $('#bulkUploadProgressTransferred').text(`${formatBytes(totalLoaded)} / ${formatBytes(totalBytes)}`);
+                    $('#bulkUploadProgressSpeed').text(`${formatBytes(bytesPerSecond)}/s`);
+                    $('#bulkUploadProgressEta').text(formatDuration(etaSeconds));
+                    $('#bulkUploadProgressStatus').text(`Uploading mod ${fileIndex} of ${totalFiles}...`);
+                });
+
+                xhr.addEventListener('load', function() {
+                    let payload = {};
+
+                    try {
+                        payload = xhr.responseText ? JSON.parse(xhr.responseText) : {};
+                    } catch (error) {
+                        console.error('Failed to parse staged bulk upload response', error);
+                    }
+
+                    if (xhr.status >= 200 && xhr.status < 300 && payload.ok) {
+                        resolve();
+                        return;
+                    }
+
+                    reject(new Error(payload.error || `Failed while uploading ${file.name}.`));
+                });
+
+                xhr.addEventListener('error', function() {
+                    reject(new Error(`Network error while uploading ${file.name}.`));
+                });
+
+                xhr.addEventListener('abort', function() {
+                    reject(new Error(`Upload was cancelled while sending ${file.name}.`));
+                });
+
+                xhr.send(formData);
+            });
+        }
+
+        function resetSingleUploadProgress() {
+            $('#singleUploadProgressWrapper').addClass('is-hidden');
+            $('#singleUploadProgressBar').val(0);
+            $('#singleUploadProgressPercent').text('0%');
+            $('#singleUploadProgressTransferred').text('0 B / 0 B');
+            $('#singleUploadProgressSpeed').text('0 B/s');
+            $('#singleUploadProgressEta').text('Waiting...');
+            $('#singleUploadProgressStatus').text('Preparing upload...');
+        }
+
+        function showSingleUploadProgress() {
+            $('#singleUploadProgressWrapper').removeClass('is-hidden');
+        }
+
+        function setSingleUploadProcessingState() {
+            $('#singleUploadProgressBar').val(100);
+            $('#singleUploadProgressPercent').text('100%');
+            $('#singleUploadProgressEta').text('Processing...');
+            $('#singleUploadProgressStatus').text('Upload complete. Applying mod and restarting server...');
+        }
+
         function renderStatus(status) {
             let tagClass = 'is-success';
             if (status === 'running') {
@@ -249,14 +403,156 @@
             showLoadingModal('Properties are updating and server is restarting. Please wait...');
         });
 
-        $('#replaceModsButton').click(() => 
-        {
-            showLoadingModal('Uploading mods and restarting server. Please wait...');
+        $('#addModForm').on('submit', function(event) {
+            event.preventDefault();
+
+            const formElement = this;
+            const $form = $(formElement);
+            const $submitButton = $('#addModButton');
+            const fileInput = formElement.querySelector('input[name="mod"]');
+            let uploadTransferComplete = false;
+
+            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                return;
+            }
+
+            const formData = new FormData(formElement);
+            const startTime = Date.now();
+
+            showSingleUploadProgress();
+            $('#singleUploadProgressStatus').text('Uploading mod...');
+            $submitButton.prop('disabled', true).addClass('is-loading');
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', $form.attr('action'), true);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.setRequestHeader('Accept', 'application/json');
+
+            xhr.upload.addEventListener('progress', function(progressEvent) {
+                if (!progressEvent.lengthComputable) {
+                    return;
+                }
+
+                const loaded = progressEvent.loaded;
+                const total = progressEvent.total;
+                const percent = total > 0 ? Math.min(100, Math.round((loaded / total) * 100)) : 0;
+                const elapsedSeconds = Math.max((Date.now() - startTime) / 1000, 0.1);
+                const bytesPerSecond = loaded / elapsedSeconds;
+                const remainingBytes = Math.max(total - loaded, 0);
+                const etaSeconds = bytesPerSecond > 0 ? remainingBytes / bytesPerSecond : Infinity;
+
+                $('#singleUploadProgressBar').val(percent);
+                $('#singleUploadProgressPercent').text(`${percent}%`);
+                $('#singleUploadProgressTransferred').text(`${formatBytes(loaded)} / ${formatBytes(total)}`);
+                $('#singleUploadProgressSpeed').text(`${formatBytes(bytesPerSecond)}/s`);
+                if (percent >= 100) {
+                    uploadTransferComplete = true;
+                    setSingleUploadProcessingState();
+                    return;
+                }
+
+                $('#singleUploadProgressEta').text(formatDuration(etaSeconds));
+                $('#singleUploadProgressStatus').text('Uploading mod...');
+            });
+
+            xhr.upload.addEventListener('load', function() {
+                if (!uploadTransferComplete) {
+                    uploadTransferComplete = true;
+                    setSingleUploadProcessingState();
+                }
+            });
+
+            xhr.addEventListener('load', function() {
+                $submitButton.prop('disabled', false).removeClass('is-loading');
+
+                let payload = {};
+                try {
+                    payload = xhr.responseText ? JSON.parse(xhr.responseText) : {};
+                } catch (error) {
+                    console.error('Failed to parse single upload response', error);
+                }
+
+                if (xhr.status >= 200 && xhr.status < 300 && payload.ok) {
+                    setSingleUploadProcessingState();
+                    window.location.href = payload.redirect_url || window.location.pathname;
+                    return;
+                }
+
+                resetSingleUploadProgress();
+                const errorMessage = payload.error || 'Mod upload failed.';
+                alert(errorMessage);
+            });
+
+            xhr.addEventListener('error', function() {
+                $submitButton.prop('disabled', false).removeClass('is-loading');
+                resetSingleUploadProgress();
+                alert('Mod upload failed. Please try again.');
+            });
+
+            xhr.addEventListener('abort', function() {
+                $submitButton.prop('disabled', false).removeClass('is-loading');
+                resetSingleUploadProgress();
+                alert('Mod upload was cancelled.');
+            });
+
+            xhr.send(formData);
         });
 
-        $('#addModButton').click(() =>
-        {
-            showLoadingModal('Uploading mod. Please wait...');
+        $('#replaceModsForm').on('submit', function(event) {
+            event.preventDefault();
+
+            const formElement = this;
+            const $form = $(formElement);
+            const $submitButton = $('#replaceModsButton');
+            const fileInput = formElement.querySelector('input[name="mods"]');
+
+            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                return;
+            }
+
+            const files = Array.from(fileInput.files).filter((file) => file.name.toLowerCase().endsWith('.jar'));
+            if (files.length === 0) {
+                alert('No .jar mod files were found in the selected folder.');
+                return;
+            }
+
+            const startTime = Date.now();
+            const totalBytes = files.reduce((sum, file) => sum + (file.size || 0), 0);
+
+            showBulkUploadProgress();
+            $('#bulkUploadProgressStatus').text('Uploading mods...');
+            $submitButton.prop('disabled', true).addClass('is-loading');
+
+            const baseAction = $form.attr('action');
+
+            (async function() {
+                let uploadedBytes = 0;
+                try {
+                    const batchStart = await requestJson(`${baseAction}/start`);
+                    const batchId = batchStart.batch_id;
+
+                    for (let index = 0; index < files.length; index += 1) {
+                        const file = files[index];
+                        await uploadBulkBatchFile(`${baseAction}/file`, batchId, file, uploadedBytes, totalBytes, index + 1, files.length, startTime);
+                        uploadedBytes += file.size || 0;
+                    }
+
+                    $('#bulkUploadProgressBar').val(100);
+                    $('#bulkUploadProgressPercent').text('100%');
+                    $('#bulkUploadProgressTransferred').text(`${formatBytes(totalBytes)} / ${formatBytes(totalBytes)}`);
+                    $('#bulkUploadProgressSpeed').text(`${formatBytes(totalBytes / Math.max((Date.now() - startTime) / 1000, 0.1))}/s`);
+                    setBulkUploadProcessingState();
+
+                    const commitResponse = await requestJson(`${baseAction}/commit`, 'POST', new URLSearchParams({ batch_id: batchId }));
+                    window.location.href = commitResponse.redirect_url || window.location.pathname;
+                } catch (error) {
+                    console.error('Bulk staged upload failed', error);
+                    resetBulkUploadProgress();
+                    alert(error.message || 'Bulk mod upload failed.');
+                } finally {
+                    $submitButton.prop('disabled', false).removeClass('is-loading');
+                }
+            })();
         });
         
         $('.file-input').on('change', function() 
@@ -267,12 +563,16 @@
             
             if (this.files && this.files.length > 0) 
             {
-                $fileNameDisplay.text(this.files[0].name);
+                if ($(this).attr('name') === 'mods' && this.files.length > 1) {
+                    $fileNameDisplay.text(`${this.files.length} files selected`);
+                } else {
+                    $fileNameDisplay.text(this.files[0].name);
+                }
                 $submitButton.prop('disabled', false).removeClass('is-loading');
             } 
             else 
             {
-                $fileNameDisplay.text('No file selected');
+                $fileNameDisplay.text($(this).attr('name') === 'mods' ? 'No folder selected' : 'No file selected');
                 $submitButton.prop('disabled', true);
             }
         });
@@ -426,7 +726,7 @@
                 </div>
                 %end
 
-                <form action="/spawn/{{spawn.name}}/mods/replace" method="post" enctype="multipart/form-data" class="mt-3">
+                <form id="replaceModsForm" action="/spawn/{{spawn.name}}/mods/replace" method="post" enctype="multipart/form-data" class="mt-3">
                     <div class="field mb-2">
                         <label class="label is-small">Replace All Mods</label>
                         <div class="file has-name is-fullwidth">
@@ -440,13 +740,25 @@
                             </label>
                         </div>
                     </div>
+                    <div id="bulkUploadProgressWrapper" class="box is-hidden p-3 mb-3">
+                        <div class="is-flex is-justify-content-space-between is-align-items-center mb-2">
+                            <span id="bulkUploadProgressStatus" class="has-text-weight-semibold">Preparing upload...</span>
+                            <span id="bulkUploadProgressPercent" class="tag is-info is-light">0%</span>
+                        </div>
+                        <progress id="bulkUploadProgressBar" class="progress is-primary mb-2" value="0" max="100">0%</progress>
+                        <div class="is-size-7 has-text-grey">
+                            <div><strong>Transferred:</strong> <span id="bulkUploadProgressTransferred">0 B / 0 B</span></div>
+                            <div><strong>Speed:</strong> <span id="bulkUploadProgressSpeed">0 B/s</span></div>
+                            <div><strong>ETA:</strong> <span id="bulkUploadProgressEta">Waiting...</span></div>
+                        </div>
+                    </div>
                     <button type="submit" id="replaceModsButton" class="button is-primary is-fullwidth is-small">
                         <span class="icon"><i class="fas fa-sync"></i></span>
                         <span>Replace Mods</span>
                     </button>
                 </form>
 
-                <form action="/spawn/{{spawn.name}}/mods/add-file" method="post" enctype="multipart/form-data" class="mt-3">
+                <form id="addModForm" action="/spawn/{{spawn.name}}/mods/add-file" method="post" enctype="multipart/form-data" class="mt-3">
                     <div class="field mb-2">
                         <label class="label is-small">Add Single Mod</label>
                         <div class="file has-name is-fullwidth">
@@ -458,6 +770,18 @@
                                 </span>
                                 <span class="file-name is-small">No file selected</span>
                             </label>
+                        </div>
+                    </div>
+                    <div id="singleUploadProgressWrapper" class="box is-hidden p-3 mb-3">
+                        <div class="is-flex is-justify-content-space-between is-align-items-center mb-2">
+                            <span id="singleUploadProgressStatus" class="has-text-weight-semibold">Preparing upload...</span>
+                            <span id="singleUploadProgressPercent" class="tag is-info is-light">0%</span>
+                        </div>
+                        <progress id="singleUploadProgressBar" class="progress is-info mb-2" value="0" max="100">0%</progress>
+                        <div class="is-size-7 has-text-grey">
+                            <div><strong>Transferred:</strong> <span id="singleUploadProgressTransferred">0 B / 0 B</span></div>
+                            <div><strong>Speed:</strong> <span id="singleUploadProgressSpeed">0 B/s</span></div>
+                            <div><strong>ETA:</strong> <span id="singleUploadProgressEta">Waiting...</span></div>
                         </div>
                     </div>
                     <button type="submit" id="addModButton" class="button is-info is-fullwidth is-small">Add Mod</button>

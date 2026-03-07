@@ -24,6 +24,7 @@ class Spawn:
         self.server_properties: str = ""
         self.docker_compose_file: str = os.path.join(self.directory, "docker-compose.yml")
         self.mods_dir: str = os.path.join(self.directory, "data", "mods")
+        self.mod_uploads_dir: str = os.path.join(self.directory, ".mod_upload_batches")
         self.pending_deletions_file: str = os.path.join(self.directory, ".pending_mod_deletions")
         self.backups_dir: str = os.path.join(self.directory, "backups")
         self.backup_settings_file: str = os.path.join(self.directory, ".backup_settings")
@@ -671,6 +672,67 @@ class Spawn:
         except Exception:
             return []
 
+    def __get_mod_upload_batch_dir(self, batch_id: str) -> str:
+        safe_batch_id = os.path.basename((batch_id or "").strip())
+        if not safe_batch_id:
+            raise ValueError("Missing upload batch id.")
+        if safe_batch_id != (batch_id or "").strip():
+            raise ValueError("Invalid upload batch id.")
+        return os.path.join(self.mod_uploads_dir, safe_batch_id)
+
+    def __replace_mods_from_directory(self, source_mods_dir: str, cleanup_source: bool = False) -> None:
+        parent_dir = os.path.dirname(self.mods_dir)
+        os.makedirs(parent_dir, exist_ok=True)
+
+        previous_mods_dir = ""
+        try:
+            self.__updateContainerInformation()
+            if self.container != None and self.container.state.status == "running":
+                self.stop()
+
+            if os.path.isdir(self.mods_dir):
+                previous_mods_dir = tempfile.mkdtemp(prefix=f"{self.name}-mods-old-", dir=parent_dir)
+                shutil.rmtree(previous_mods_dir)
+                os.replace(self.mods_dir, previous_mods_dir)
+
+            os.replace(source_mods_dir, self.mods_dir)
+            self.restart()
+        finally:
+            if cleanup_source and os.path.isdir(source_mods_dir):
+                shutil.rmtree(source_mods_dir, ignore_errors=True)
+            if previous_mods_dir and os.path.isdir(previous_mods_dir):
+                shutil.rmtree(previous_mods_dir, ignore_errors=True)
+
+    def start_mod_upload_batch(self, batch_id: str) -> None:
+        batch_dir = self.__get_mod_upload_batch_dir(batch_id)
+        if os.path.isdir(batch_dir):
+            shutil.rmtree(batch_dir, ignore_errors=True)
+        os.makedirs(batch_dir, exist_ok=True)
+
+    def stage_mod_upload_file(self, batch_id: str, file_upload) -> None:
+        batch_dir = self.__get_mod_upload_batch_dir(batch_id)
+        os.makedirs(batch_dir, exist_ok=True)
+        filename = os.path.basename((file_upload.filename or "").strip())
+        if not filename:
+            raise ValueError("Missing mod filename.")
+        if not filename.lower().endswith(".jar"):
+            raise ValueError("Only .jar mod files are supported.")
+        dest = os.path.join(batch_dir, filename)
+        file_upload.save(dest, overwrite=True)
+
+    def commit_mod_upload_batch(self, batch_id: str) -> None:
+        batch_dir = self.__get_mod_upload_batch_dir(batch_id)
+        if not os.path.isdir(batch_dir):
+            raise ValueError("Upload batch was not found.")
+
+        jar_count = len([f for f in os.listdir(batch_dir) if os.path.isfile(os.path.join(batch_dir, f)) and f.lower().endswith(".jar")])
+        if jar_count == 0:
+            shutil.rmtree(batch_dir, ignore_errors=True)
+            raise ValueError("No .jar mod files were uploaded.")
+
+        print(f"[commit_mod_upload_batch] Applying staged batch {batch_id} with {jar_count} mods for {self.name}")
+        self.__replace_mods_from_directory(batch_dir)
+
     def replace_mods_from_uploads(self, files: list) -> None:
         try:
             uploads = files or []
@@ -696,19 +758,15 @@ class Spawn:
                     upload.save(dest, overwrite=True)
                     saved_count += 1
 
-                if os.path.isdir(self.mods_dir):
-                    previous_mods_dir = tempfile.mkdtemp(prefix=f"{self.name}-mods-old-", dir=parent_dir)
-                    shutil.rmtree(previous_mods_dir)
-                    os.replace(self.mods_dir, previous_mods_dir)
+                if saved_count == 0:
+                    raise ValueError("No .jar mod files were found in the upload.")
 
-                os.replace(temp_mods_dir, self.mods_dir)
+                self.__replace_mods_from_directory(temp_mods_dir)
                 temp_mods_dir = ""
 
                 print(f"[replace_mods_from_uploads] Replaced mods for {self.name} with {saved_count} jar files")
                 if skipped_count:
                     print(f"[replace_mods_from_uploads] Skipped {skipped_count} non-jar files for {self.name}")
-
-                self.restart()
             finally:
                 if temp_mods_dir and os.path.isdir(temp_mods_dir):
                     shutil.rmtree(temp_mods_dir, ignore_errors=True)
@@ -718,6 +776,7 @@ class Spawn:
             print(f"Error replacing mods for {self.name}: {str(e)}")
             import traceback
             traceback.print_exc()
+            raise RuntimeError(f"Failed to replace mods for {self.name}: {str(e)}") from e
 
     def add_mod_file(self, file_upload) -> None:
         try:
@@ -732,6 +791,33 @@ class Spawn:
             self.restart()
         except Exception as e:
             print(f"Error adding mod for {self.name}: {str(e)}")
+            raise RuntimeError(f"Failed to add mod for {self.name}: {str(e)}") from e
+
+    def remove_all_mod_files(self) -> int:
+        removed_files = []
+        try:
+            if not os.path.isdir(self.mods_dir):
+                return 0
+
+            for filename in os.listdir(self.mods_dir):
+                fp = os.path.join(self.mods_dir, filename)
+                if not os.path.isfile(fp):
+                    continue
+                os.remove(fp)
+                removed_files.append(filename)
+
+            if removed_files:
+                existing_pending = set(self.pending_mod_deletions)
+                for filename in removed_files:
+                    if filename not in existing_pending:
+                        self.pending_mod_deletions.append(filename)
+                self.__save_pending_deletions()
+                print(f"Deleted all mods for {self.name} ({len(removed_files)} files, restart required)")
+
+            return len(removed_files)
+        except Exception as e:
+            print(f"Error removing all mods for {self.name}: {str(e)}")
+            raise RuntimeError(f"Failed to remove all mods for {self.name}: {str(e)}") from e
 
     def remove_mod_file(self, filename: str) -> None:
         try:

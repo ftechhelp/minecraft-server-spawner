@@ -1,4 +1,5 @@
 from bottle import get, post, run, template as bottle_template, request, redirect, BaseRequest, error, response
+import bottle
 from utils.spawner import Spawner
 from utils.backup_scheduler import backup_scheduler
 from utils.log_analyzer import log_analyzer, LogAnalysisError
@@ -15,6 +16,7 @@ from dotenv import load_dotenv
 import os
 import atexit
 import json
+import uuid
 
 load_dotenv()
 
@@ -38,7 +40,10 @@ def render_template(template_path: str, **kwargs):
 
 # Allow large multi-file uploads (e.g., a folder of .jar mods)
 # Default is ~100KB; increase to 512MB to support mod folder uploads
-BaseRequest.MEMFILE_MAX = 512 * 1024 * 1024
+UPLOAD_MEMFILE_MAX = 512 * 1024 * 1024
+BaseRequest.MEMFILE_MAX = UPLOAD_MEMFILE_MAX
+bottle.BaseRequest.MEMFILE_MAX = UPLOAD_MEMFILE_MAX
+bottle.LocalRequest.MEMFILE_MAX = UPLOAD_MEMFILE_MAX
 
 spawner = Spawner()
 spawner.loadSpawns()
@@ -234,28 +239,115 @@ def delete_mod(name):
 @post('/spawn/<name>/mods/add-file')
 def add_mod_file(name):
     spawn = spawner.spawns[name]
+    accept_header = request.get_header('Accept') or ''
+    is_ajax_request = request.get_header('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in accept_header
     mod_upload = request.files.get('mod')
     if mod_upload:
         spawn.add_mod_file(mod_upload)
+        if is_ajax_request:
+            response.content_type = 'application/json'
+            return json.dumps({'ok': True, 'redirect_url': f"/spawn/{name}"})
+    elif is_ajax_request:
+        response.content_type = 'application/json'
+        response.status = 400
+        return json.dumps({'ok': False, 'error': 'No mod file was received for upload.'})
     redirect(f"/spawn/{name}")
+
+@post('/spawn/<name>/mods/replace/start')
+def start_replace_mods_batch(name):
+    spawn = spawner.spawns[name]
+    response.content_type = 'application/json'
+
+    try:
+        batch_id = str(uuid.uuid4())
+        spawn.start_mod_upload_batch(batch_id)
+        return json.dumps({'ok': True, 'batch_id': batch_id})
+    except Exception as exc:
+        response.status = 500
+        return json.dumps({'ok': False, 'error': str(exc)})
+
+@post('/spawn/<name>/mods/replace/file')
+def stage_replace_mod_file(name):
+    spawn = spawner.spawns[name]
+    response.content_type = 'application/json'
+
+    batch_id = (request.forms.get('batch_id') or '').strip()
+    mod_upload = request.files.get('mod')
+
+    if not batch_id:
+        response.status = 400
+        return json.dumps({'ok': False, 'error': 'Missing upload batch id.'})
+
+    if not mod_upload:
+        response.status = 400
+        return json.dumps({'ok': False, 'error': 'No mod file was received for upload.'})
+
+    try:
+        spawn.stage_mod_upload_file(batch_id, mod_upload)
+        return json.dumps({'ok': True})
+    except Exception as exc:
+        response.status = 500
+        return json.dumps({'ok': False, 'error': str(exc)})
+
+@post('/spawn/<name>/mods/replace/commit')
+def commit_replace_mods_batch(name):
+    spawn = spawner.spawns[name]
+    response.content_type = 'application/json'
+
+    batch_id = (request.forms.get('batch_id') or '').strip()
+    if not batch_id:
+        response.status = 400
+        return json.dumps({'ok': False, 'error': 'Missing upload batch id.'})
+
+    try:
+        spawn.commit_mod_upload_batch(batch_id)
+        return json.dumps({'ok': True, 'redirect_url': f"/spawn/{name}"})
+    except Exception as exc:
+        response.status = 500
+        return json.dumps({'ok': False, 'error': str(exc)})
 
 @post('/spawn/<name>/mods/replace')
 def replace_mods(name):
     spawn = spawner.spawns[name]
+    accept_header = request.get_header('Accept') or ''
+    is_ajax_request = request.get_header('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in accept_header
     print(f"[replace_mods route] Processing replace for {name}")
     try:
         uploads = request.files.getall('mods')
         print(f"[replace_mods route] Got {len(uploads)} files via getall")
     except Exception as e:
         print(f"[replace_mods route] getall failed: {e}, trying get")
-        up = request.files.get('mods')
-        uploads = [up] if up else []
-        print(f"[replace_mods route] Got {len(uploads)} files via get")
+        try:
+            up = request.files.get('mods')
+            uploads = [up] if up else []
+            print(f"[replace_mods route] Got {len(uploads)} files via get")
+        except Exception as inner_exc:
+            print(f"[replace_mods route] get fallback failed: {inner_exc}")
+            if is_ajax_request:
+                response.content_type = 'application/json'
+                response.status = 413 if 'Memory limit reached' in str(inner_exc) else 400
+                return json.dumps({'ok': False, 'error': str(inner_exc)})
+            raise
     
     if not uploads:
         print(f"[replace_mods route] WARNING: No files received!")
+        if is_ajax_request:
+            response.content_type = 'application/json'
+            response.status = 400
+            return json.dumps({'ok': False, 'error': 'No files were received for upload.'})
     
-    spawn.replace_mods_from_uploads(uploads)
+    try:
+        spawn.replace_mods_from_uploads(uploads)
+    except Exception as exc:
+        if is_ajax_request:
+            response.content_type = 'application/json'
+            response.status = 500
+            return json.dumps({'ok': False, 'error': str(exc)})
+        raise
+
+    if is_ajax_request:
+        response.content_type = 'application/json'
+        return json.dumps({'ok': True, 'redirect_url': f"/spawn/{name}"})
     redirect(f"/spawn/{name}")
 
 # Deprecated: zip-based import; kept for compatibility if still used

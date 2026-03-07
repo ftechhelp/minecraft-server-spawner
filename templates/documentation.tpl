@@ -214,20 +214,26 @@
                 <ol>
                     <li>Choose one <code>.jar</code> file.</li>
                     <li>Click <strong>Add Mod</strong>.</li>
+                    <li>The page shows live upload progress with percentage, transferred size, speed, and estimated time remaining while the file is being sent.</li>
                     <li>The file is saved into the mods folder.</li>
                     <li>The server performs a lightweight restart so the new mod is applied.</li>
                 </ol>
+
+                <p>After the upload reaches 100%, the page switches to a processing state while the server applies the mod and restarts.</p>
 
                 <h3 class="title is-5">Replace All Mods</h3>
                 <ol>
                     <li>Choose a folder containing the mod files you want to use.</li>
                     <li>Click <strong>Replace Mods</strong>.</li>
-                    <li>The app stages the uploaded <code>.jar</code> files in a temporary folder first.</li>
+                    <li>The page shows live upload progress with percentage, transferred size, speed, and estimated time remaining while the files are being sent.</li>
+                    <li>The browser uploads the selected <code>.jar</code> files to a temporary server-side batch in smaller requests instead of sending the whole folder in one large request.</li>
+                    <li>After all files are staged, the app commits the batch as one full mods replacement.</li>
                     <li>The app swaps the full mods folder in one step instead of deleting old mods one by one.</li>
                     <li>The app performs a lightweight server restart to apply the new set.</li>
                 </ol>
 
                 <p>This flow is optimized for larger mod batches and is much faster when replacing packs with 100 or more mods.</p>
+                <p>The time estimate reflects the browser upload stage. After the upload reaches 100%, the page switches to a processing state while the server applies the new mods and restarts.</p>
 
                 <h3 class="title is-5">Delete a mod</h3>
                 <ol>
