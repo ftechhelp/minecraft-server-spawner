@@ -243,6 +243,15 @@
                     <li>Restart or recreate the server to fully apply the removal.</li>
                 </ol>
 
+                <h3 class="title is-5">Delete All Mods</h3>
+                <ol>
+                    <li>Click <strong>Delete All Mods</strong> in the mods section.</li>
+                    <li>Confirm the action in the dialog.</li>
+                    <li>The app removes all current mod files from disk in one operation.</li>
+                    <li>The app records those files as pending deletions.</li>
+                    <li>Restart or recreate the server to fully apply the removal.</li>
+                </ol>
+
                 <div class="notification is-warning is-light">
                     <p><strong>Important:</strong> only files ending in <code>.jar</code> are accepted for upload.</p>
                     <p><strong>Tip:</strong> always create a backup before changing your mod set.</p>

@@ -17,6 +17,7 @@ The point of this project was to keep everything as light and simple as possible
 - Edit `server.properties` from the web interface and restart the server with the updated configuration.
 - Upload a single mod file or replace the full mods folder for Forge servers using a lightweight restart flow.
 - Optimized bulk mod replacement for large uploads by staging files through smaller requests, then swapping the mods directory before a lightweight restart.
+- Delete all current mods in one action instead of removing them one by one.
 - Live single mod upload progress with percentage, transferred size, speed, and estimated time remaining.
 - Live bulk mod upload progress with percentage, transferred size, speed, and estimated time remaining.
 - Create manual backups, enable daily backups, and configure retention days per server.
@@ -137,6 +138,8 @@ The bulk upload form now shows live browser-side progress during transfer, inclu
 Single-file mod uploads also use the lightweight restart flow, which makes routine mod changes faster than the previous recreate/build behavior.
 
 The single-file upload form now also shows live browser-side progress during transfer, including percent complete, uploaded size, transfer speed, and an estimated time remaining. After the upload reaches 100%, the UI switches to a processing state while the server applies the mod and restarts.
+
+You can also use `Delete All Mods` to remove every current mod file in one step. Like individual mod deletion, this marks the change on disk immediately and still requires a restart or re-create to fully apply the removal.
 
 The connection address shown on each spawn page uses `SERVER_CONNECTION_HOST` plus the spawn port.
 

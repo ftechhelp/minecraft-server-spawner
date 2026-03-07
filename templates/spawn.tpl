@@ -73,6 +73,24 @@
         $(document).on('click', '.cancel-delete-btn', function() {
             $('#deleteConfirmModal').removeClass('is-active');
         });
+        $('#deleteAllModsButton').click(() => {
+            $('#deleteAllModsConfirmModal').addClass('is-active');
+            return false;
+        });
+
+        $('#confirmDeleteAllModsButton').click(() => {
+            $('#deleteAllModsConfirmModal').removeClass('is-active');
+            showLoadingModal('Deleting all mods. Please wait...');
+            $('#deleteAllModsForm').submit();
+        });
+
+        $('#cancelDeleteAllModsButton').click(() => {
+            $('#deleteAllModsConfirmModal').removeClass('is-active');
+        });
+
+        $(document).on('click', '#deleteAllModsConfirmModal .modal-background, #deleteAllModsConfirmModal .delete', function() {
+            $('#deleteAllModsConfirmModal').removeClass('is-active');
+        });
         let streamInterval = null;
         let isStreaming = false;
 
@@ -707,6 +725,14 @@
         <div class="column is-12-mobile is-6-tablet is-4-desktop">
             <div class="box">
                 <h2 class="title is-5">Mods ({{len(mods)}})</h2>
+                %if len(mods) > 0:
+                <form id="deleteAllModsForm" action="/spawn/{{spawn.name}}/mods/delete-all" method="post" class="mb-3">
+                    <button id="deleteAllModsButton" type="button" class="button is-danger is-light is-small is-fullwidth">
+                        <span class="icon"><i class="fas fa-trash"></i></span>
+                        <span>Delete All Mods</span>
+                    </button>
+                </form>
+                %end
                 %if len(mods) == 0:
                 <p class="has-text-grey">No mods found.</p>
                 %else:
@@ -786,6 +812,24 @@
                     </div>
                     <button type="submit" id="addModButton" class="button is-info is-fullwidth is-small">Add Mod</button>
                 </form>
+            </div>
+        </div>
+
+        <div id="deleteAllModsConfirmModal" class="modal">
+            <div class="modal-background"></div>
+            <div class="modal-card">
+                <header class="modal-card-head">
+                    <p class="modal-card-title">Delete All Mods</p>
+                    <button class="delete" type="button" aria-label="close"></button>
+                </header>
+                <section class="modal-card-body">
+                    <p>This will remove all mod files from this server.</p>
+                    <p class="mt-3 has-text-weight-semibold">A restart or re-create will still be required to fully apply the removal.</p>
+                </section>
+                <footer class="modal-card-foot is-justify-content-flex-end">
+                    <button id="cancelDeleteAllModsButton" type="button" class="button">Cancel</button>
+                    <button id="confirmDeleteAllModsButton" type="button" class="button is-danger">Delete All Mods</button>
+                </footer>
             </div>
         </div>
 

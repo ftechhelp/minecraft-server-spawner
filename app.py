@@ -236,6 +236,12 @@ def delete_mod(name):
     spawn.remove_mod_file(mod_filename)
     redirect(f"/spawn/{name}")
 
+@post('/spawn/<name>/mods/delete-all')
+def delete_all_mods(name):
+    spawn = spawner.spawns[name]
+    spawn.remove_all_mod_files()
+    redirect(f"/spawn/{name}")
+
 @post('/spawn/<name>/mods/add-file')
 def add_mod_file(name):
     spawn = spawner.spawns[name]
