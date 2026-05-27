@@ -10,13 +10,14 @@
 ## Running the App
 
 ```bash
-docker compose up --build
+docker compose down --remove-orphans && docker compose up --build
 ```
 
 - Web UI: `http://localhost:8889` (dev port mapping)
 - Minecraft servers: ports `25565-25665` (mapped to `26665-26765` in dev)
 - No test suite exists. Verify changes manually or with `python3 -m py_compile <file>`.
-- **Always rebuild after changes**: Run `docker compose up --build` after making changes to test them. The app runs inside Docker, so code changes require a rebuild to take effect.
+- **Always rebuild after changes**: Run `docker compose down --remove-orphans && docker compose up --build` after making changes to test them. The app runs inside Docker, so code changes require a rebuild to take effect.
+- **Container name conflicts**: If you get "container name already in use" errors, run `docker rm -f <container-name>` to force remove the conflicting container, then rebuild.
 
 ## Key Files
 
