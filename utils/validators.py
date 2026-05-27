@@ -8,7 +8,7 @@ import os
 from typing import Tuple, Optional
 
 
-ALLOWED_SERVER_TYPES = {"FORGE", "VANILLA"}
+ALLOWED_SERVER_TYPES = {"FORGE", "NEOFORGE", "VANILLA"}
 
 
 def validate_port(port: str) -> Tuple[bool, Optional[int], str]:
@@ -108,18 +108,23 @@ def validate_minecraft_version(version: str) -> Tuple[bool, str, str]:
 
 def validate_forge_version(version: str, server_type: str) -> Tuple[bool, str, str]:
     """
-    Validates Forge version values based on selected server type.
+    Validates Forge/NeoForge version values based on selected server type.
     """
     version = (version or "LATEST").strip() or "LATEST"
     normalized_type = (server_type or "FORGE").strip().upper() or "FORGE"
 
-    # Vanilla servers should not carry a Forge version setting.
     if normalized_type == "VANILLA":
         return True, "LATEST", ""
 
-    # FORGE accepts explicit versions or LATEST.
     if version.upper() == "LATEST":
         return True, "LATEST", ""
+
+    if normalized_type == "NEOFORGE":
+        if version.lower() == "beta":
+            return True, "beta", ""
+        if not re.match(r'^\d+\.\d+\.\d+(?:\.\d+)?$', version):
+            return False, "", "NeoForge version must be in format X.Y.Z or X.Y.Z.W (e.g., 47.1.79), 'LATEST', or 'beta'"
+        return True, version, ""
 
     if not re.match(r'^\d+\.\d+\.\d+(?:\.\d+)?$', version):
         return False, "", "Forge version must be in format X.Y.Z or X.Y.Z.W (e.g., 47.2.0) or 'LATEST'"

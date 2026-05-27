@@ -15,10 +15,11 @@
             <section class="box">
                 <h2 class="title is-3">What this app does</h2>
                 <p>This panel lets you create, run, inspect, back up, restore, and delete Minecraft servers from a web interface. Each server is managed as its own Docker-based spawn with its own data folder, logs, mods folder, and backup history.</p>
-                <p>The app currently supports two server types:</p>
+                <p>The app currently supports three server types:</p>
                 <ul>
                     <li><strong>VANILLA</strong> for unmodded servers</li>
                     <li><strong>FORGE</strong> for modded Forge servers</li>
+                    <li><strong>NEOFORGE</strong> for modded NeoForge servers (Minecraft 1.20.1+)</li>
                 </ul>
                 <p>From the UI you can create a server, start and stop it, recreate its container, edit <code>server.properties</code>, upload mods, send console commands, view logs, analyze logs, create backups, restore backups, and recover archived backups after a server has been deleted.</p>
             </section>
@@ -98,9 +99,9 @@
                 <ul>
                     <li><strong>Name</strong> - optional. If left blank, the app generates a random UUID-style name.</li>
                     <li><strong>Port</strong> - optional. If left blank, the app assigns the next available port in the allowed range.</li>
-                    <li><strong>Type</strong> - choose <strong>FORGE</strong> or <strong>VANILLA</strong>.</li>
+                    <li><strong>Type</strong> - choose <strong>FORGE</strong>, <strong>NEOFORGE</strong>, or <strong>VANILLA</strong>.</li>
                     <li><strong>Minecraft version</strong> - accepts <code>LATEST</code>, <code>X.Y</code>, or <code>X.Y.Z</code>.</li>
-                    <li><strong>Forge version</strong> - accepts <code>LATEST</code>, <code>X.Y.Z</code>, or <code>X.Y.Z.W</code> for Forge servers.</li>
+                    <li><strong>Forge/NeoForge version</strong> - accepts <code>LATEST</code>, <code>X.Y.Z</code>, or <code>X.Y.Z.W</code> for Forge and NeoForge servers. NeoForge also accepts <code>beta</code>.</li>
                 </ul>
 
                 <h3 class="title is-5">Validation rules</h3>
@@ -112,7 +113,7 @@
                     <li>Ports must be between <code>25565</code> and <code>25665</code>.</li>
                     <li>Ports already used by another spawn are blocked.</li>
                     <li>If no free port remains in the allowed range, server creation fails.</li>
-                    <li>Only <strong>FORGE</strong> and <strong>VANILLA</strong> are accepted as server types.</li>
+                    <li>Only <strong>FORGE</strong>, <strong>NEOFORGE</strong>, and <strong>VANILLA</strong> are accepted as server types.</li>
                 </ul>
 
                 <h3 class="title is-5">Spawn list</h3>
@@ -138,9 +139,9 @@
                     <li><strong>Port</strong> - the external game port players should use.</li>
                     <li><strong>Players Online</strong> - shown when the server responds to status queries.</li>
                     <li><strong>Connect</strong> - the game address plus a copy button.</li>
-                    <li><strong>Type</strong> - <code>FORGE</code> or <code>VANILLA</code>.</li>
+                    <li><strong>Type</strong> - <code>FORGE</code>, <code>NEOFORGE</code>, or <code>VANILLA</code>.</li>
                     <li><strong>MC Version</strong> - the configured Minecraft version.</li>
-                    <li><strong>Forge</strong> - the configured Forge version.</li>
+                    <li><strong>Forge / NeoForge</strong> - the configured mod loader version (label adapts to the server type).</li>
                     <li><strong>Loaded Mods</strong> - number of files currently in the mods folder.</li>
                     <li><strong>Pending Del</strong> - appears when one or more mods were deleted from disk but the server has not yet been restarted to fully apply the change.</li>
                 </ul>

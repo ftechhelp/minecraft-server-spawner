@@ -41,9 +41,10 @@ class Spawner:
         docker_compose['services']['mc']['stdin_open'] = True
         docker_compose['services']['mc']['tty'] = True
 
+        version_env_key = "NEOFORGE_VERSION" if spawn.type == "NEOFORGE" else "FORGE_VERSION"
         docker_compose['services']['mc']['environment'] = [f"TYPE={spawn.type}"]
         docker_compose['services']['mc']['environment'] += [f"VERSION={spawn.minecraft_version}"]
-        docker_compose['services']['mc']['environment'] += [f"FORGE_VERSION={spawn.forge_version}"]
+        docker_compose['services']['mc']['environment'] += [f"{version_env_key}={spawn.forge_version}"]
         docker_compose['services']['mc']['environment'] += ["EULA=TRUE"]
         docker_compose['services']['mc']['environment'] += ["INIT_MEMORY=2G"]
         docker_compose['services']['mc']['environment'] += ["MAX_MEMORY=16G"]
@@ -209,9 +210,13 @@ class Spawner:
                         volume_raw = docker_compose['services']['mc']['volumes'][0].split(":")[0]
                         # For display purposes, keep it simple
                         volume = "./data" if volume_raw.endswith("/data") else volume_raw
-                        type = docker_compose['services']['mc']['environment'][0].split("=")[1]
-                        minecraft_version = docker_compose['services']['mc']['environment'][1].split("=")[1]
-                        forge_version = docker_compose['services']['mc']['environment'][2].split("=")[1]
+                        env_vars = {}
+                        for env_entry in docker_compose['services']['mc']['environment']:
+                            key, _, value = env_entry.partition("=")
+                            env_vars[key] = value
+                        type = env_vars.get("TYPE", "FORGE")
+                        minecraft_version = env_vars.get("VERSION", "LATEST")
+                        forge_version = env_vars.get("FORGE_VERSION") or env_vars.get("NEOFORGE_VERSION", "LATEST")
 
                         spawn = Spawn(name, port, volume, type, minecraft_version, forge_version)
                         self.spawns[spawn.name] = spawn

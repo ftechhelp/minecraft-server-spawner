@@ -687,10 +687,17 @@
                                 <td><strong>MC Version:</strong></td>
                                 <td>{{spawn.minecraft_version}}</td>
                             </tr>
+                            %if spawn.type == 'NEOFORGE':
+                            <tr>
+                                <td><strong>NeoForge:</strong></td>
+                                <td>{{spawn.forge_version}}</td>
+                            </tr>
+                            %elif spawn.type == 'FORGE':
                             <tr>
                                 <td><strong>Forge:</strong></td>
                                 <td>{{spawn.forge_version}}</td>
                             </tr>
+                            %end
                             <tr>
                                 <td><strong>Loaded Mods:</strong></td>
                                 <td>{{len(mods)}}</td>
