@@ -16,6 +16,7 @@ docker compose up --build
 - Web UI: `http://localhost:8889` (dev port mapping)
 - Minecraft servers: ports `25565-25665` (mapped to `26665-26765` in dev)
 - No test suite exists. Verify changes manually or with `python3 -m py_compile <file>`.
+- **Always rebuild after changes**: Run `docker compose up --build` after making changes to test them. The app runs inside Docker, so code changes require a rebuild to take effect.
 
 ## Key Files
 
