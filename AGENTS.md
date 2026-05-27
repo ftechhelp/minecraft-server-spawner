@@ -31,8 +31,12 @@ docker compose down --remove-orphans && docker compose up --build
 
 Set in `.env` (copy from `.env.example`):
 - `GEMINI_API_KEY` - Optional, enables AI log analysis
-- `WEB_PANEL_URL` - URL shown in UI (default: `http://localhost:8889`)
+- `WEB_PANEL_URL` - URL shown in UI (default: `http://localhost:8888`)
 - `SERVER_CONNECTION_HOST` - Host shown to players (default: `localhost`)
+- `IS_TEST` - Set to `true` to show "TEST SITE" banner in UI (default: `false`)
+- `WEB_PORT` - Host port for the web UI (default: `8888`)
+- `MC_PORT_START` / `MC_PORT_END` - Host port range for Minecraft servers (default: `25565`-`25665`)
+- `CONTAINER_NAME` - Docker container name (default: `minecraft-spawner`)
 
 Runtime vars in `docker-compose.yml`:
 - `SPAWNS_DIR=/app/spawns`

@@ -27,6 +27,7 @@ def env_flag(name: str, default: str = "false") -> bool:
 
 WEB_PANEL_URL = os.environ.get('WEB_PANEL_URL', 'http://localhost:8888').strip() or 'http://localhost:8888'
 SERVER_CONNECTION_HOST = os.environ.get('SERVER_CONNECTION_HOST', 'localhost').strip() or 'localhost'
+IS_TEST = env_flag('IS_TEST', 'false')
 
 
 def render_template(template_path: str, **kwargs):
@@ -34,6 +35,7 @@ def render_template(template_path: str, **kwargs):
         'web_panel_url': WEB_PANEL_URL,
         'server_connection_host': SERVER_CONNECTION_HOST,
         'server_connection_example': f'{SERVER_CONNECTION_HOST}:25565',
+        'is_test': IS_TEST,
     }
     template_context.update(kwargs)
     return bottle_template(template_path, **template_context)

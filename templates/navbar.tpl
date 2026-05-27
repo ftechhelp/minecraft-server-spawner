@@ -76,3 +76,8 @@
         </div>
     </div>
 </nav>
+%if is_test:
+<div class="notification is-warning has-text-centered has-text-weight-bold" style="border-radius: 0; margin-bottom: 0; padding: 0.5rem;">
+    TEST SITE - NOT PRODUCTION
+</div>
+%end
