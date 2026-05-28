@@ -380,10 +380,11 @@ class Spawn:
         docker_compose['services']['mc']['image'] = "itzg/minecraft-server"
         docker_compose['services']['mc']['stdin_open'] = True
         docker_compose['services']['mc']['tty'] = True
+        version_env_key = "NEOFORGE_VERSION" if self.type == "NEOFORGE" else "FORGE_VERSION"
         docker_compose['services']['mc']['environment'] = [
             f"TYPE={self.type}",
             f"VERSION={self.minecraft_version}",
-            f"FORGE_VERSION={self.forge_version}",
+            f"{version_env_key}={self.forge_version}",
             "EULA=TRUE",
             "INIT_MEMORY=2G",
             "MAX_MEMORY=16G",

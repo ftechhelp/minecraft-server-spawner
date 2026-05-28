@@ -54,7 +54,7 @@
                             <th>Source Server</th>
                             <th>Server Type</th>
                             <th>MC Version</th>
-                            <th>Forge Version</th>
+                            <th>Mod Loader Version</th>
                             <th>Created At</th>
                             <th>Size</th>
                             <th>Restore</th>

@@ -1,0 +1,7 @@
+spawns/
+backups/
+tmp/
+.git/
+__pycache__/
+**/__pycache__/
+.env

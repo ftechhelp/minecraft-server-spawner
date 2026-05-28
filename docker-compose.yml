@@ -1,0 +1,32 @@
+services:
+  minecraft-spawner:
+    build: .
+    container_name: ${CONTAINER_NAME:-minecraft-spawner}
+    restart: unless-stopped
+    privileged: true
+    ports:
+      - "${WEB_PORT:-8888}:8888"
+      - "${MC_PORT_START:-25565}-${MC_PORT_END:-25665}:25565-25665"
+    volumes:
+      - ./spawns:/app/spawns
+      - ./backups:/app/backups
+    environment:
+      - SPAWNS_DIR=/app/spawns
+      - ARCHIVED_BACKUPS_DIR=/app/backups
+      - WEB_PANEL_URL=${WEB_PANEL_URL:-http://localhost:8888}
+      - SERVER_CONNECTION_HOST=${SERVER_CONNECTION_HOST:-localhost}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=gemini-3.1-flash-lite-preview
+      - IS_TEST=${IS_TEST:-false}
+      - PYTHONUNBUFFERED=1
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - TZ=America/Vancouver
+    networks:
+      - private
+      - public
+
+networks:
+  private:
+    external: true
+  public:
+    external: true

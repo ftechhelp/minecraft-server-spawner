@@ -30,6 +30,7 @@
                 <div class="select is-fullwidth">
                     <select name="type">
                         <option {{'selected' if create_form.get('type', 'FORGE') == 'FORGE' else ''}}>FORGE</option>
+                        <option {{'selected' if create_form.get('type', 'FORGE') == 'NEOFORGE' else ''}}>NEOFORGE</option>
                         <option {{'selected' if create_form.get('type', 'FORGE') == 'VANILLA' else ''}}>VANILLA</option>
                     </select>
                 </div>
@@ -38,7 +39,7 @@
                 <input class="input is-link" type="text" name="minecraft_version" placeholder="Minecraft Version (LATEST)" value="{{create_form.get('minecraft_version', '')}}">
             </div>
             <div class="control column">
-                <input class="input is-link" type="text" name="forge_version" placeholder="Forge Version (LATEST)" value="{{create_form.get('forge_version', '')}}">
+                <input class="input is-link" type="text" name="forge_version" placeholder="Forge/NeoForge Version (LATEST)" value="{{create_form.get('forge_version', '')}}">
             </div>
             <p class="control column">
                 <button type="submit" class="button is-link is-fullwidth" id="spawnButton">
