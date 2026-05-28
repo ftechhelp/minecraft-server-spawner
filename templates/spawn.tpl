@@ -687,7 +687,7 @@
                                 <td><strong>MC Version:</strong></td>
                                 <td>{{spawn.minecraft_version}}</td>
                             </tr>
-!                            %if spawn.type == 'NEOFORGE':
+                            %if spawn.type == 'NEOFORGE':
                             <tr>
                                 <td><strong>NeoForge:</strong></td>
                                 <td>{{spawn.forge_version}}</td>
