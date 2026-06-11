@@ -3,11 +3,29 @@ import yaml
 from python_on_whales import docker, Container
 import shutil
 import tempfile
+import threading
 import zipfile
 import socket
 import struct
 from bs4 import BeautifulSoup
 import json
+from contextlib import contextmanager
+
+# The cwd is process-global, so compose operations that chdir into a spawn
+# directory must be serialized across request threads and the backup scheduler.
+_compose_cwd_lock = threading.Lock()
+
+
+@contextmanager
+def _compose_dir(directory: str):
+    with _compose_cwd_lock:
+        previous_directory = os.getcwd()
+        os.chdir(directory)
+        try:
+            yield
+        finally:
+            os.chdir(previous_directory)
+
 
 class Spawn:
 
@@ -45,31 +63,26 @@ class Spawn:
         with open(self.docker_compose_file, 'w') as file:
             yaml.dump(docker_compose, file, default_flow_style=False)
 
-    def up(self) -> None:
-        os.chdir(self.directory)
-        docker.compose.up(detach=True, force_recreate=True, recreate=True, attach_dependencies=False, build=True)
-        print(f"Spawn {self.name} is up.")
-        self.__updateContainerInformation()
-        os.chdir("../..")
+    def up(self, force_recreate: bool = True) -> None:
+        with _compose_dir(self.directory):
+            docker.compose.up(detach=True, force_recreate=force_recreate, recreate=True, attach_dependencies=False, build=True)
+            print(f"Spawn {self.name} is up.")
+            self.__updateContainerInformation()
         # Clear pending deletions after successful restart
         self.clear_pending_deletions()
 
     def stop(self) -> None:
-        os.chdir(self.directory)
-        docker.compose.stop()
-        print(f"Spawn {self.name} is stopped.")
-        os.chdir("../..")
+        with _compose_dir(self.directory):
+            docker.compose.stop()
+            print(f"Spawn {self.name} is stopped.")
 
     def start(self) -> None:
-        os.chdir(self.directory)
-        docker.compose.start()
-        print(f"Spawn {self.name} is started.")
-        os.chdir("../..")
+        with _compose_dir(self.directory):
+            docker.compose.start()
+            print(f"Spawn {self.name} is started.")
 
     def restart(self) -> None:
-        previous_directory = os.getcwd()
-        os.chdir(self.directory)
-        try:
+        with _compose_dir(self.directory):
             self.__updateContainerInformation()
             if self.container == None:
                 docker.compose.up(detach=True, force_recreate=False, recreate=False, attach_dependencies=False, build=False)
@@ -81,14 +94,11 @@ class Spawn:
             print(f"Spawn {self.name} is restarted.")
             self.__updateContainerInformation()
             self.clear_pending_deletions()
-        finally:
-            os.chdir(previous_directory)
 
     def purge(self) -> None:
-        os.chdir(self.directory)
-        docker.compose.down(remove_images="all", volumes=True, remove_orphans=True)
-        print(f"Spawn {self.name} down.")
-        os.chdir("../..")
+        with _compose_dir(self.directory):
+            docker.compose.down(remove_images="all", volumes=True, remove_orphans=True)
+            print(f"Spawn {self.name} down.")
 
         if os.path.exists(self.directory):
             shutil.rmtree(self.directory)

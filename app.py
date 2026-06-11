@@ -49,7 +49,7 @@ bottle.LocalRequest.MEMFILE_MAX = UPLOAD_MEMFILE_MAX
 
 spawner = Spawner()
 spawner.loadSpawns()
-spawner.recreate_all_spawns_once()
+spawner.ensure_all_spawns_up()
 
 # Start backup scheduler
 backup_scheduler.start(spawner)
@@ -475,9 +475,15 @@ def error500(err):
 
 
 if __name__ == '__main__':
+    # waitress: threaded, buffers slow clients off the worker threads, and
+    # drops stalled connections (channel_timeout). The default wsgiref server
+    # is single-threaded with no socket timeout, so one stalled client wedged
+    # the whole panel in recvfrom.
     run(
         host='0.0.0.0',
         port=8888,
+        server='waitress',
+        threads=8,
         reloader=env_flag('BOTTLE_RELOADER', 'false'),
         debug=env_flag('BOTTLE_DEBUG', 'false'),
     )

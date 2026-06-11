@@ -33,5 +33,9 @@ ENV TZ=America/Vancouver
 RUN mkdir -p /app/spawns
 RUN mkdir -p /app/backups
 
-# Start Docker daemon, then start the web app in the foreground
-CMD ["sh", "-c", "dockerd-entrypoint.sh & sleep 10 && python app.py"]
+# Start Docker daemon, then start the web app in the foreground.
+# Stale pid files survive a plain `docker restart` and make the inner
+# dockerd fail with "containerd is still running" / startup timeout, so
+# remove them first. Then wait (up to 60s) for the daemon to actually
+# answer instead of sleeping a fixed 10s.
+CMD ["sh", "-c", "rm -f /var/run/docker.pid /var/run/docker/containerd/containerd.pid; dockerd-entrypoint.sh & i=0; until docker info >/dev/null 2>&1 || [ $i -ge 60 ]; do i=$((i+1)); sleep 1; done; python app.py"]

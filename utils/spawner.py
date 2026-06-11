@@ -11,7 +11,6 @@ class Spawner:
     
     def __init__(self):
         self.spawns: dict = {}
-        self._startup_sentinel = "/app/tmp/startup_recreate_done"
         self.archived_backups_dir = os.environ.get("ARCHIVED_BACKUPS_DIR", "./backups")
 
     def spawn_name_exists(self, name: str) -> bool:
@@ -21,7 +20,7 @@ class Spawner:
         spawn_folder = os.environ.get("SPAWNS_DIR", "./spawns")
         return os.path.isdir(os.path.join(spawn_folder, name))
 
-    def create_or_modify_spawn(self, name: str = None, new_port: int = 25565, new_volume: str = "./data", new_type: str = "FORGE", new_minecraftVersion: str = "LATEST", new_forgeVersion: str = "LATEST") -> None:
+    def create_or_modify_spawn(self, name: str = None, new_port: int = 25565, new_volume: str = "./data", new_type: str = "FORGE", new_minecraftVersion: str = "LATEST", new_forgeVersion: str = "LATEST", force_recreate: bool = True) -> None:
         spawn_name = name or str(uuid.uuid4())
         spawn = Spawn(spawn_name, new_port or 25565, new_volume or "./data", new_type or "FORGE", new_minecraftVersion or "LATEST", new_forgeVersion or "LATEST")
         docker_compose = spawn.get_docker_compose_contents()
@@ -52,7 +51,7 @@ class Spawner:
         spawn.set_docker_compose_contents(docker_compose)
         print("Docker Compose file updated successfully.")
 
-        spawn.up()
+        spawn.up(force_recreate=force_recreate)
 
         try:
             spawn.load_server_properties()
@@ -231,30 +230,30 @@ class Spawner:
             else:
                 print(f"'{spawn_path}' is not a directory. Skipping spawn.")
 
-    def recreate_all_spawns_once(self):
+    def ensure_all_spawns_up(self):
+        """Bring every known spawn up at startup without bouncing running ones.
+
+        The inner dind daemon stores its state on an anonymous volume, so
+        recreating the panel container loses all Minecraft containers. A
+        non-forced compose up is a no-op for running servers, starts stopped
+        ones, and recreates them from the persisted spawn definitions when the
+        inner daemon state was wiped.
+        """
         try:
-            os.makedirs(os.path.dirname(self._startup_sentinel), exist_ok=True)
-            if os.path.exists(self._startup_sentinel):
-                return
-            # Ensure spawns are loaded
             if not self.spawns:
                 self.loadSpawns()
-            # Migrate and recreate all spawns
             for name, spawn in self.spawns.items():
                 try:
-                    print(f"Migrating and recreating spawn '{name}' at startup...")
-                    # Regenerate docker-compose with absolute paths
+                    print(f"Ensuring spawn '{name}' is up at startup...")
                     self.create_or_modify_spawn(
                         name=spawn.name,
                         new_port=spawn.port,
                         new_type=spawn.type,
                         new_minecraftVersion=spawn.minecraft_version,
-                        new_forgeVersion=spawn.forge_version
+                        new_forgeVersion=spawn.forge_version,
+                        force_recreate=False,
                     )
                 except Exception as e:
-                    print(f"Failed to recreate spawn '{name}': {str(e)}")
-            # Mark done
-            with open(self._startup_sentinel, 'w') as f:
-                f.write('done')
+                    print(f"Failed to bring up spawn '{name}': {str(e)}")
         except Exception as e:
-            print(f"Startup recreate step encountered an error: {str(e)}")
+            print(f"Startup ensure-up step encountered an error: {str(e)}")
