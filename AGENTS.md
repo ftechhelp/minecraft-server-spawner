@@ -18,6 +18,7 @@ docker compose down --remove-orphans && docker compose up --build
 - No test suite exists. Verify changes manually or with `python3 -m py_compile <file>`.
 - **Always rebuild after changes**: Run `docker compose down --remove-orphans && docker compose up --build` after making changes to test them. The app runs inside Docker, so code changes require a rebuild to take effect.
 - **Container name conflicts**: If you get "container name already in use" errors, run `docker rm -f <container-name>` to force remove the conflicting container, then rebuild.
+- **Dev and prod side by side**: Compose targets containers by project name, which defaults to the directory basename — identical for the dev and prod checkouts. `COMPOSE_PROJECT_NAME` must be set in `.env` (`minecraft-spawner-dev` in dev, `minecraft-spawner` in prod), otherwise `docker compose down` in one checkout tears down the other's container.
 
 ## Key Files
 
@@ -60,6 +61,8 @@ The `itzg/minecraft-server` image supports many types natively via `TYPE=` env v
 ## Gotchas
 
 - **No tests**: Run `python3 -m py_compile <file>` to check syntax. Manual verification required.
+- **Threaded server**: The app runs under waitress with 8 worker threads (wsgiref wedged on stalled clients). The cwd is process-global, so compose operations that chdir must use the `_compose_dir()` context manager in `models/spawn.py` (lock + cwd restore).
+- **Startup ensure-up**: on every startup the panel runs a non-forced `compose up` for each spawn (`Spawner.ensure_all_spawns_up()`). This is required because the inner dind daemon's `/var/lib/docker` is an anonymous volume — recreating the panel container wipes all Minecraft containers, and the persisted compose files in `spawns/` are what restores them. Non-forced means running servers are not bounced.
 - **Env var order matters**: `loadSpawns()` now parses by key name, but older code assumed index-based parsing. Always use key-based lookup.
 - **Backup archival**: When a spawn is deleted, the app archives its latest backup. Metadata includes server type and versions.
 - **Mod uploads**: Bulk uploads stage files in batches, then swap the mods directory. Single uploads use a lightweight restart flow.
