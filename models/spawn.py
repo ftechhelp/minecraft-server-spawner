@@ -47,6 +47,8 @@ class Spawn:
         self.backups_dir: str = os.path.join(self.directory, "backups")
         self.backup_settings_file: str = os.path.join(self.directory, ".backup_settings")
         self.backup_settings: dict = self.__load_backup_settings()
+        self.owner_file: str = os.path.join(self.directory, ".owner")
+        self.owner = self.__load_owner()
         self.pending_mod_deletions: list = self.__load_pending_deletions()
 
         self.__updateContainerInformation()
@@ -618,6 +620,26 @@ class Spawn:
     def reload_backup_settings(self) -> None:
         """Reload backup settings from file into memory"""
         self.backup_settings = self.__load_backup_settings()
+
+    def __load_owner(self):
+        """Load the owning username from the .owner sidecar; missing file means unowned."""
+        try:
+            if os.path.exists(self.owner_file):
+                with open(self.owner_file, 'r') as f:
+                    return json.load(f).get('owner')
+        except Exception as e:
+            print(f"Error loading owner for {self.name}: {str(e)}")
+        return None
+
+    def set_owner(self, owner) -> None:
+        """Set the owning username (None for unowned) and persist it."""
+        self.owner = owner
+        try:
+            os.makedirs(os.path.dirname(self.owner_file), exist_ok=True)
+            with open(self.owner_file, 'w') as f:
+                json.dump({'owner': owner}, f, indent=2)
+        except Exception as e:
+            print(f"Error saving owner for {self.name}: {str(e)}")
 
     def __save_backup_settings(self) -> None:
         """Save backup settings to file"""

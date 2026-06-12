@@ -21,7 +21,7 @@ docker rm -f <container-name>
 
 - Web UI: `http://localhost:8889` in dev (`8888` default, set via `WEB_PORT` in `.env`)
 - Minecraft server ports: `25565-25665` (mapped to `26665-26765` in dev)
-- Config comes from `.env` (copy `.env.example`); `GEMINI_API_KEY` is optional and only enables AI log analysis
+- Config comes from `.env` (copy `.env.example`); `GEMINI_API_KEY` is optional and only enables AI log analysis. `ADMIN_USERNAME`/`ADMIN_PASSWORD` seed the first admin account on first start; `panel_data/` holds the users db and cookie secret (never commit it)
 
 ## Architecture
 
@@ -34,7 +34,9 @@ docker rm -f <container-name>
 
 **Spawn lifecycle**: each server is a directory under `spawns/<name>/` containing `docker-compose.yml` (generated, the source of truth for type/version/port), `data/` (world, mods, server.properties), and `backups/`. Deleting a spawn archives its latest backup into `backups/` (repo root, `ARCHIVED_BACKUPS_DIR`) with a `.json` metadata sidecar used for restore. **Never commit or hand-edit `spawns/` or `backups/` — they hold live server data.**
 
-**Supporting utils**: `utils/validators.py` (`ALLOWED_SERVER_TYPES` = FORGE, NEOFORGE, VANILLA; port/name/version validation), `utils/backup_scheduler.py` (daily backups, timezone hardcoded to `America/Vancouver`), `utils/log_analyzer.py` (Gemini API via raw urllib).
+**Supporting utils**: `utils/validators.py` (`ALLOWED_SERVER_TYPES` = FORGE, NEOFORGE, VANILLA; port/name/username/version validation), `utils/backup_scheduler.py` (daily backups, timezone hardcoded to `America/Vancouver`), `utils/log_analyzer.py` (Gemini API via raw urllib), `utils/users.py` (accounts and auth — see below).
+
+**Auth and eggs**: accounts live in `panel_data/users.json` (volume-mounted; all access goes through `utils/users.py` under its module lock — never touch the file elsewhere). Passwords are stdlib scrypt; sessions are Bottle signed cookies (secret from `COOKIE_SECRET` env or auto-persisted at `panel_data/.cookie_secret`, so logins survive rebuilds). The first admin is seeded from `ADMIN_USERNAME`/`ADMIN_PASSWORD` only when `users.json` doesn't exist. Each spawn has a `.owner` JSON sidecar (absent = unowned); it's read in `Spawn.__init__`, so `loadSpawns()`/`ensure_all_spawns_up()` preserve ownership — only POST /spawn, archived restore, and admin user-deletion write it. Eggs are capacity slots: a user's `eggs` balance = max concurrently *running* servers they own; anonymous visitors share one slot over unowned spawns. Enforcement lives in `check_egg_capacity()` in `app.py`, called under `_capacity_lock` (check + container start in one critical section) from create/start/recreate/archived-restore. Permissions: owned spawns manageable by owner + admins only (`require_spawn_permission` decorator on all mutating spawn routes); unowned spawns manageable by anyone; viewing is open to all.
 
 ## Adding a new server type
 
@@ -51,8 +53,7 @@ The `itzg/minecraft-server` image supports many types natively via `TYPE=` env v
 - Env vars in generated compose files are a list of `KEY=value` strings — always look up by key, not position.
 - Port range `25565-25665` is hardcoded in validation and port auto-selection.
 - Spawn names must be unique, alphanumeric plus hyphens/underscores; validation blocks path traversal.
-- Dev and prod checkouts share the same directory basename, so the default compose project name collides — `COMPOSE_PROJECT_NAME` must stay set in `.env` (`minecraft-spawner-dev` in dev, `minecraft-spawner` in prod) or `docker compose down` in one checkout tears down the other's container. Prod lives at `/SSD/apps/minecraft-server-spawner/minecraft-server-spawner`.
-- Bulk mod uploads stage files in batches under `.mod_upload_batches/`, then swap the mods directory and do a lightweight restart; single uploads restart directly.
+- Dev and prod checkouts share the same directory basename, so the default compose project name collides — `COMPOSE_PROJECT_NAME` must stay set in `.env` (`minecraft-spawner-dev` in dev, `minecraft-spawner` in prod) or `docker compose down` in one checkout tears down the other's container. Prod lives at `/SSD/apps/minecraft-server-spawner/minecraft-server-spawner`.- Bulk mod uploads stage files in batches under `.mod_upload_batches/`, then swap the mods directory and do a lightweight restart; single uploads restart directly.
 
 ## Conventions
 

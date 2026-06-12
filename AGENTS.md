@@ -19,13 +19,13 @@ docker compose down --remove-orphans && docker compose up --build
 - **Always rebuild after changes**: Run `docker compose down --remove-orphans && docker compose up --build` after making changes to test them. The app runs inside Docker, so code changes require a rebuild to take effect.
 - **Container name conflicts**: If you get "container name already in use" errors, run `docker rm -f <container-name>` to force remove the conflicting container, then rebuild.
 - **Dev and prod side by side**: Compose targets containers by project name, which defaults to the directory basename — identical for the dev and prod checkouts. `COMPOSE_PROJECT_NAME` must be set in `.env` (`minecraft-spawner-dev` in dev, `minecraft-spawner` in prod), otherwise `docker compose down` in one checkout tears down the other's container.
-
 ## Key Files
 
 - `app.py` - Bottle routes and request handling
 - `models/spawn.py` - `Spawn` class: represents one Minecraft server instance
 - `utils/spawner.py` - `Spawner` class: manages all spawns, creates/loads them
-- `utils/validators.py` - Input validation (server types, versions, ports, names)
+- `utils/validators.py` - Input validation (server types, versions, ports, names, usernames)
+- `utils/users.py` - User accounts, password hashing, sessions secret, permissions
 - `templates/*.tpl` - Bottle SimpleTemplate HTML files
 
 ## Environment Variables
@@ -38,10 +38,13 @@ Set in `.env` (copy from `.env.example`):
 - `WEB_PORT` - Host port for the web UI (default: `8888`)
 - `MC_PORT_START` / `MC_PORT_END` - Host port range for Minecraft servers (default: `25565`-`25665`)
 - `CONTAINER_NAME` - Docker container name (default: `minecraft-spawner`)
+- `ADMIN_USERNAME` / `ADMIN_PASSWORD` - Seed the first admin account, only when no users db exists yet
+- `COOKIE_SECRET` - Session cookie signing secret; blank = auto-generated and persisted in `panel_data/`
 
 Runtime vars in `docker-compose.yml`:
 - `SPAWNS_DIR=/app/spawns`
 - `ARCHIVED_BACKUPS_DIR=/app/backups`
+- `PANEL_DATA_DIR=/app/panel_data` (users db + cookie secret, volume-mounted)
 - `TZ=America/Vancouver` (backup scheduler uses this)
 
 ## Server Type Implementation
@@ -68,3 +71,4 @@ The `itzg/minecraft-server` image supports many types natively via `TYPE=` env v
 - **Mod uploads**: Bulk uploads stage files in batches, then swap the mods directory. Single uploads use a lightweight restart flow.
 - **Port range**: Hardcoded to `25565-25665`. Validation prevents ports outside this range.
 - **Spawn names**: Must be unique, alphanumeric + hyphens/underscores, no path traversal (`..`, `/`, `\`).
+- **Auth and eggs**: Users live in `panel_data/users.json` — all access goes through `utils/users.py` under its module lock; never read/write the file elsewhere. Sessions are Bottle signed cookies (scrypt password hashes, stdlib only). Each spawn has a `.owner` JSON sidecar (absent = unowned) read in `Spawn.__init__`, so `loadSpawns()`/`ensure_all_spawns_up()` preserve ownership. Eggs are capacity slots: a user's balance = max concurrently *running* servers they own; anonymous visitors share one slot over unowned spawns. Enforcement is `check_egg_capacity()` in `app.py`, always called under `_capacity_lock` together with the container start. Owned spawns are manageable by owner + admins only (`require_spawn_permission` on every mutating spawn route); unowned spawns by anyone; viewing is open.

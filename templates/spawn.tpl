@@ -629,6 +629,17 @@
 </script>
 
 <div class="container is-fluid p-4">
+    %if page_error:
+    <div class="notification is-danger is-light">
+        {{page_error}}
+    </div>
+    %end
+    %if not can_manage:
+    <div class="notification is-info is-light">
+        <span class="icon"><i class="fa-solid fa-lock"></i></span>
+        This server is owned by <strong>{{spawn.owner}}</strong>. Log in as the owner or an admin to manage it.
+    </div>
+    %end
     <!-- Server Info Card -->
     <div class="columns is-multiline">
         <div class="column is-12-mobile is-6-tablet is-4-desktop">
@@ -711,6 +722,7 @@
                         </tbody>
                     </table>
                 </div>
+                %if can_manage:
                 <footer class="card-footer is-flex-wrap-wrap">
                     <form class="card-footer-item is-flex-grow-1" action="/spawn/{{spawn.name}}/recreate" method="post">
                         <button id="recreateButton" class="button is-info is-fullwidth">Re-create</button>
@@ -725,6 +737,7 @@
                         <button id="deleteButton" type="button" class="button is-danger is-fullwidth">Delete</button>
                     </form>
                 </footer>
+                %end
             </div>
         </div>
 
@@ -732,7 +745,7 @@
         <div class="column is-12-mobile is-6-tablet is-4-desktop">
             <div class="box">
                 <h2 class="title is-5">Mods ({{len(mods)}})</h2>
-                %if len(mods) > 0:
+                %if can_manage and len(mods) > 0:
                 <form id="deleteAllModsForm" action="/spawn/{{spawn.name}}/mods/delete-all" method="post" class="mb-3">
                     <button id="deleteAllModsButton" type="button" class="button is-danger is-light is-small is-fullwidth">
                         <span class="icon"><i class="fas fa-trash"></i></span>
@@ -750,15 +763,18 @@
                         <div class="control is-expanded">
                             <input class="input is-small" type="text" name="mod" value="{{mod}}" readonly>
                         </div>
+                        %if can_manage:
                         <div class="control">
                             <button class="button is-small is-danger">Delete</button>
                         </div>
+                        %end
                     </div>
                 </form>
                 %end
                 </div>
                 %end
 
+                %if can_manage:
                 <form id="replaceModsForm" action="/spawn/{{spawn.name}}/mods/replace" method="post" enctype="multipart/form-data" class="mt-3">
                     <div class="field mb-2">
                         <label class="label is-small">Replace All Mods</label>
@@ -819,6 +835,7 @@
                     </div>
                     <button type="submit" id="addModButton" class="button is-info is-fullwidth is-small">Add Mod</button>
                 </form>
+                %end
             </div>
         </div>
 
@@ -844,6 +861,7 @@
         <div class="column is-12-mobile is-6-tablet is-4-desktop">
             <div class="box">
                 <h2 class="title is-5">Backups</h2>
+                %if can_manage:
                 <form action="/spawn/{{spawn.name}}/backup/create" method="post" onsubmit="showLoadingModal('Creating backup. Please wait...');">
                     <div class="field mb-2">
                         <label class="label is-small">Backup Name (optional)</label>
@@ -889,6 +907,9 @@
 
                     <button type="submit" class="button is-info is-fullwidth is-small">Save</button>
                 </form>
+                %else:
+                <p class="has-text-grey">Backup actions are reserved for the server's owner.</p>
+                %end
 
                 %if spawn.backup_settings.get('last_backup_timestamp'):
                 <div class="content mt-2">
@@ -905,10 +926,12 @@
             <div class="box">
                 <h2 class="title is-5">Logs</h2>
                 <div class="buttons are-small mb-3">
+                    %if can_manage:
                     <button id="analyzeLogsButton" type="button" class="button is-primary">
                         <span class="icon"><i class="fas fa-wand-magic-sparkles"></i></span>
                         <span>Analyze</span>
                     </button>
+                    %end
                     <button id="streamButton" class="button is-outlined is-info">
                         <span class="icon"><i class="fas fa-broadcast-tower"></i></span>
                         <span>Stream</span>
@@ -925,6 +948,7 @@
                 <div id="logsContainer" style="max-height: 400px; overflow-y: auto; background: #f5f5f5; padding: 1rem; border-radius: 4px; border: 1px solid #dbdbdb;">
                     <pre id="logsContent" style="margin: 0; font-size: 0.8em; font-family: 'Courier New', monospace; white-space: pre-wrap; word-wrap: break-word;">{{spawn.logs}}</pre>
                 </div>
+                %if can_manage:
                 <form action="/spawn/{{spawn.name}}/console/send" method="post" class="mt-3">
                     <div class="field is-grouped">
                         <div class="control is-expanded">
@@ -935,6 +959,7 @@
                         </div>
                     </div>
                 </form>
+                %end
             </div>
         </div>
 
@@ -947,6 +972,7 @@
                             <h2 class="title is-5">Server Properties</h2>
                         </div>
                     </div>
+                    %if can_manage:
                     <div class="level-right">
                         <div class="level-item">
                             <form action="/spawn/{{spawn.name}}/server_properties/save" method="post" style="display: inline;">
@@ -954,10 +980,15 @@
                             </form>
                         </div>
                     </div>
+                    %end
                 </div>
+                %if can_manage:
                 <form action="/spawn/{{spawn.name}}/server_properties/save" method="post">
                     <textarea class="textarea" name="server_properties" rows="16" style="font-family: 'Courier New', monospace; font-size: 0.85em;">{{spawn.server_properties}}</textarea>
                 </form>
+                %else:
+                <textarea class="textarea" rows="16" readonly style="font-family: 'Courier New', monospace; font-size: 0.85em;">{{spawn.server_properties}}</textarea>
+                %end
             </div>
         </div>
     </div>
@@ -981,6 +1012,7 @@
                                         <small class="has-text-grey">{{backup['timestamp']}} ({{backup['size_mb']}} MB)</small>
                                     </div>
                                 </td>
+                                %if can_manage:
                                 <td class="is-narrow">
                                     <form action="/spawn/{{spawn.name}}/backup/restore/{{backup['name']}}" method="post" style="display: inline;" onsubmit="if(!confirm('Restore this backup? Current world will be replaced.')) return false; showLoadingModal('Restoring backup. Please wait...');return true;">
                                         <button type="submit" class="button is-small is-info">
@@ -995,6 +1027,7 @@
                                         </button>
                                     </form>
                                 </td>
+                                %end
                             </tr>
                         %end
                         </tbody>

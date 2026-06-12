@@ -1,6 +1,7 @@
-from bottle import get, post, run, template as bottle_template, request, redirect, BaseRequest, error, response
+from bottle import get, post, run, template as bottle_template, request, redirect, abort, BaseRequest, error, response
 import bottle
 from utils.spawner import Spawner
+from utils import users
 from utils.backup_scheduler import backup_scheduler
 from utils.log_analyzer import log_analyzer, LogAnalysisError
 from utils.validators import (
@@ -11,11 +12,16 @@ from utils.validators import (
     validate_forge_version,
     check_port_availability,
     find_next_available_port,
+    validate_username,
 )
 from dotenv import load_dotenv
+from urllib.parse import quote
+import functools
 import os
 import atexit
 import json
+import threading
+import time
 import uuid
 
 load_dotenv()
@@ -29,16 +35,102 @@ WEB_PANEL_URL = os.environ.get('WEB_PANEL_URL', 'http://localhost:8888').strip()
 SERVER_CONNECTION_HOST = os.environ.get('SERVER_CONNECTION_HOST', 'localhost').strip() or 'localhost'
 IS_TEST = env_flag('IS_TEST', 'false')
 
+users.bootstrap_admin()
+COOKIE_SECRET = users.get_cookie_secret()
+SESSION_MAX_AGE = 14 * 24 * 3600
+
+# Container states that occupy an egg slot (the server is up or coming up)
+OCCUPIED_STATUSES = {'running', 'restarting', 'paused', 'created'}
+
+
+def current_user():
+    session = request.get_cookie('session', secret=COOKIE_SECRET)
+    if not isinstance(session, dict):
+        return None
+    if session.get('exp', 0) < time.time():
+        return None
+    username = session.get('u')
+    return users.get_user(username) if username else None
+
 
 def render_template(template_path: str, **kwargs):
+    user = current_user()
+    owner = user['name'] if user else None
+    # Cached statuses only — the egg-enforcement path does the fresh docker check
+    eggs_used = sum(1 for s in spawner.spawns.values() if s.owner == owner and s.get_status() in OCCUPIED_STATUSES)
     template_context = {
         'web_panel_url': WEB_PANEL_URL,
         'server_connection_host': SERVER_CONNECTION_HOST,
         'server_connection_example': f'{SERVER_CONNECTION_HOST}:25565',
         'is_test': IS_TEST,
+        'user': user,
+        'eggs_total': users.egg_capacity(user),
+        'eggs_used': eggs_used,
     }
     template_context.update(kwargs)
     return bottle_template(template_path, **template_context)
+
+
+def require_spawn_permission(handler):
+    @functools.wraps(handler)
+    def wrapper(name, *args, **kwargs):
+        spawn = spawner.spawns.get(name)
+        if spawn is None:
+            abort(404, f"Unknown server '{name}'")
+        user = current_user()
+        if not users.can_manage_spawn(user, spawn.owner):
+            message = f"This server is owned by {spawn.owner}. Log in as the owner or an admin to manage it."
+            accept_header = request.get_header('Accept') or ''
+            is_ajax_request = request.get_header('X-Requested-With') == 'XMLHttpRequest' or 'application/json' in accept_header
+            if is_ajax_request:
+                response.content_type = 'application/json'
+                response.status = 403
+                return json.dumps({'ok': False, 'error': message})
+            if user is None:
+                redirect(f"/login?next={quote(f'/spawn/{name}')}")
+            abort(403, message)
+        return handler(name, *args, **kwargs)
+    return wrapper
+
+
+def require_admin(handler):
+    @functools.wraps(handler)
+    def wrapper(*args, **kwargs):
+        user = current_user()
+        if user is None:
+            redirect(f"/login?next={quote(request.path)}")
+        if not user.get('is_admin'):
+            abort(403, 'Admin access required.')
+        return handler(*args, **kwargs)
+    return wrapper
+
+
+# Held across capacity check + container start so two simultaneous requests
+# can't both pass the check with one free slot.
+_capacity_lock = threading.Lock()
+
+
+def check_egg_capacity(owner, exclude_spawn=None):
+    """Can the owner (username, or None for the shared anonymous slot) run one more server?"""
+    if owner:
+        owner_user = users.get_user(owner)
+        capacity = owner_user['eggs'] if owner_user else users.DEFAULT_EGGS
+    else:
+        capacity = users.ANONYMOUS_EGGS
+    used = 0
+    for spawn in spawner.spawns.values():
+        if spawn.owner != owner:
+            continue
+        if exclude_spawn is not None and spawn.name == exclude_spawn.name:
+            continue
+        spawn.refreshContainerInformation()
+        if spawn.get_status() in OCCUPIED_STATUSES:
+            used += 1
+    if used >= capacity:
+        if owner is None:
+            return False, "The shared anonymous egg is in use — only one unowned server can run at a time. Log in to use your own eggs."
+        return False, f"All {capacity} of {owner}'s egg(s) are in use ({used} running). Stop a server first, or have an admin raise the egg balance."
+    return True, None
 
 # Allow large multi-file uploads (e.g., a folder of .jar mods)
 # Default is ~100KB; increase to 512MB to support mod folder uploads
@@ -59,6 +151,34 @@ atexit.register(backup_scheduler.stop)
 def index():
     spawner.loadSpawns()
     return render_template('./templates/index', spawns=spawner.spawns, create_error=None, create_form={})
+
+
+@get('/login')
+def login_page():
+    if current_user():
+        redirect('/')
+    return render_template('./templates/login', login_error=None, next_url=request.query.get('next', '/'))
+
+
+@post('/login')
+def login_submit():
+    username = request.POST.get('username', '').strip()
+    password = request.POST.get('password', '')
+    next_url = request.POST.get('next', '/').strip() or '/'
+    if not next_url.startswith('/'):
+        next_url = '/'
+    user = users.authenticate(username, password)
+    if user is None:
+        return render_template('./templates/login', login_error='Invalid username or password', next_url=next_url)
+    session = {'u': user['name'], 'exp': int(time.time()) + SESSION_MAX_AGE}
+    response.set_cookie('session', session, secret=COOKIE_SECRET, max_age=SESSION_MAX_AGE, httponly=True, path='/', samesite='lax')
+    redirect(next_url)
+
+
+@post('/logout')
+def logout():
+    response.delete_cookie('session', path='/')
+    redirect('/')
 
 @get('/docs')
 def documentation():
@@ -130,10 +250,19 @@ def spawn():
     if not valid_forge:
         return render_template('./templates/index', spawns=spawner.spawns, create_error=forge_error, create_form=create_form)
 
-    try:
-        spawner.create_or_modify_spawn(name=name, new_port=port, new_type=server_type, new_minecraftVersion=minecraft_version, new_forgeVersion=forge_version)
-    except Exception as exc:
-        return render_template('./templates/index', spawns=spawner.spawns, create_error=f"Failed to create server: {str(exc)}", create_form=create_form)
+    user = current_user()
+    owner = user['name'] if user else None
+    with _capacity_lock:
+        capacity_ok, egg_error = check_egg_capacity(owner)
+        if not capacity_ok:
+            return render_template('./templates/index', spawns=spawner.spawns, create_error=egg_error, create_form=create_form)
+
+        try:
+            new_spawn = spawner.create_or_modify_spawn(name=name, new_port=port, new_type=server_type, new_minecraftVersion=minecraft_version, new_forgeVersion=forge_version)
+        except Exception as exc:
+            return render_template('./templates/index', spawns=spawner.spawns, create_error=f"Failed to create server: {str(exc)}", create_form=create_form)
+
+        new_spawn.set_owner(owner)
 
     redirect("/")
 
@@ -141,7 +270,9 @@ def spawn():
 def view_spawn(name):
     from datetime import datetime
     from zoneinfo import ZoneInfo
-    spawn = spawner.spawns[name]
+    spawn = spawner.spawns.get(name)
+    if spawn is None:
+        abort(404, f"Unknown server '{name}'")
     spawn.refreshContainerInformation()
     spawn.reload_backup_settings()
     tz = ZoneInfo("America/Vancouver")
@@ -150,27 +281,53 @@ def view_spawn(name):
     players = server_status.get("players") if isinstance(server_status, dict) else {}
     player_count = players.get("online") if isinstance(players, dict) else None
     player_capacity = players.get("max") if isinstance(players, dict) else None
-    return render_template('./templates/spawn', spawn=spawn, mods=spawn.list_mods(), default_backup_name=default_backup_name, player_count=player_count, player_capacity=player_capacity)
+    return render_template(
+        './templates/spawn',
+        spawn=spawn,
+        mods=spawn.list_mods(),
+        default_backup_name=default_backup_name,
+        player_count=player_count,
+        player_capacity=player_capacity,
+        can_manage=users.can_manage_spawn(current_user(), spawn.owner),
+        page_error=request.query.get('error', '').strip(),
+    )
 
 @post('/spawn/<name>/recreate')
+@require_spawn_permission
 def recreate_spawn(name):
     spawn = spawner.spawns[name]
-    spawn.up()
+    with _capacity_lock:
+        spawn.refreshContainerInformation()
+        if spawn.get_status() not in OCCUPIED_STATUSES:
+            # Recreating a stopped server brings it up, so it needs a free egg
+            capacity_ok, egg_error = check_egg_capacity(spawn.owner, exclude_spawn=spawn)
+            if not capacity_ok:
+                redirect(f"/spawn/{name}?error={quote(egg_error)}")
+        spawn.up()
     redirect(f"/spawn/{name}")
 
 @post('/spawn/<name>/start')
+@require_spawn_permission
 def start_spawn(name):
     spawn = spawner.spawns[name]
-    spawn.start()
+    with _capacity_lock:
+        spawn.refreshContainerInformation()
+        if spawn.get_status() not in OCCUPIED_STATUSES:
+            capacity_ok, egg_error = check_egg_capacity(spawn.owner, exclude_spawn=spawn)
+            if not capacity_ok:
+                redirect(f"/spawn/{name}?error={quote(egg_error)}")
+        spawn.start()
     redirect(f"/spawn/{name}")
 
 @post('/spawn/<name>/stop')
+@require_spawn_permission
 def stop_spawn(name):
     spawn = spawner.spawns[name]
     spawn.stop()
     redirect(f"/spawn/{name}")
 
 @post('/spawn/<name>/delete')
+@require_spawn_permission
 def delete_spawn(name):
     spawner.loadSpawns()
     spawn = spawner.spawns[name]
@@ -187,6 +344,7 @@ def delete_spawn(name):
     redirect(f"/backups?notice={archive_notice}")
 
 @post('/spawn/<name>/refresh')
+@require_spawn_permission
 def refresh_spawn(name):
     spawn = spawner.spawns[name]
     spawn.refreshContainerInformation()
@@ -204,6 +362,7 @@ def get_logs_content(name):
     return spawn.get_logs()
 
 @post('/spawn/<name>/logs/analyze')
+@require_spawn_permission
 def analyze_logs(name):
     spawn = spawner.spawns[name]
     spawn.refreshContainerInformation()
@@ -232,6 +391,7 @@ def get_spawn_status(name):
     return json.dumps({'status': status, 'player_count': player_count, 'player_capacity': player_capacity})
 
 @post('/spawn/<name>/mods/delete')
+@require_spawn_permission
 def delete_mod(name):
     spawn = spawner.spawns[name]
     mod_filename = request.POST.mod.strip()
@@ -239,12 +399,14 @@ def delete_mod(name):
     redirect(f"/spawn/{name}")
 
 @post('/spawn/<name>/mods/delete-all')
+@require_spawn_permission
 def delete_all_mods(name):
     spawn = spawner.spawns[name]
     spawn.remove_all_mod_files()
     redirect(f"/spawn/{name}")
 
 @post('/spawn/<name>/mods/add-file')
+@require_spawn_permission
 def add_mod_file(name):
     spawn = spawner.spawns[name]
     accept_header = request.get_header('Accept') or ''
@@ -262,6 +424,7 @@ def add_mod_file(name):
     redirect(f"/spawn/{name}")
 
 @post('/spawn/<name>/mods/replace/start')
+@require_spawn_permission
 def start_replace_mods_batch(name):
     spawn = spawner.spawns[name]
     response.content_type = 'application/json'
@@ -275,6 +438,7 @@ def start_replace_mods_batch(name):
         return json.dumps({'ok': False, 'error': str(exc)})
 
 @post('/spawn/<name>/mods/replace/file')
+@require_spawn_permission
 def stage_replace_mod_file(name):
     spawn = spawner.spawns[name]
     response.content_type = 'application/json'
@@ -298,6 +462,7 @@ def stage_replace_mod_file(name):
         return json.dumps({'ok': False, 'error': str(exc)})
 
 @post('/spawn/<name>/mods/replace/commit')
+@require_spawn_permission
 def commit_replace_mods_batch(name):
     spawn = spawner.spawns[name]
     response.content_type = 'application/json'
@@ -315,6 +480,7 @@ def commit_replace_mods_batch(name):
         return json.dumps({'ok': False, 'error': str(exc)})
 
 @post('/spawn/<name>/mods/replace')
+@require_spawn_permission
 def replace_mods(name):
     spawn = spawner.spawns[name]
     accept_header = request.get_header('Accept') or ''
@@ -360,6 +526,7 @@ def replace_mods(name):
 
 # Deprecated: zip-based import; kept for compatibility if still used
 @post('/spawn/<name>/mods/upload')
+@require_spawn_permission
 def upload_mod(name):
     spawn = spawner.spawns[name]
     # No-op or translate zip uploads in future
@@ -367,12 +534,14 @@ def upload_mod(name):
 
 
 @post('/spawn/<name>/server_properties/save')
+@require_spawn_permission
 def save_server_properties(name):
     spawn = spawner.spawns[name]
     spawn.write_server_properties(request.POST.server_properties)
     redirect(f"/spawn/{name}")
 
 @post('/spawn/<name>/console/send')
+@require_spawn_permission
 def send_console_command(name):
     spawn = spawner.spawns[name]
     spawn.send_console_command(request.POST.consoleCommand)
@@ -381,6 +550,7 @@ def send_console_command(name):
 
 # --- Backup Management Routes ---
 @post('/spawn/<name>/backup/create')
+@require_spawn_permission
 def create_backup(name):
     spawn = spawner.spawns[name]
     backup_name = request.forms.get('backup_name', '').strip()
@@ -390,18 +560,21 @@ def create_backup(name):
     redirect(f"/spawn/{name}")
 
 @post('/spawn/<name>/backup/restore/<backup_name>')
+@require_spawn_permission
 def restore_backup(name, backup_name):
     spawn = spawner.spawns[name]
     success, message = spawn.restore_backup(backup_name)
     redirect(f"/spawn/{name}")
 
 @post('/spawn/<name>/backup/delete/<backup_name>')
+@require_spawn_permission
 def delete_backup(name, backup_name):
     spawn = spawner.spawns[name]
     success, message = spawn.delete_backup(backup_name)
     redirect(f"/spawn/{name}")
 
 @post('/spawn/<name>/backup/settings')
+@require_spawn_permission
 def update_backup_settings(name):
     spawn = spawner.spawns[name]
     # Handle checkbox - it's only present in POST if checked
@@ -428,7 +601,14 @@ def restore_archived_backup():
     if not archive_filename:
         redirect('/backups?error=No archived backup selected for restore')
 
-    success, message, new_spawn_name = spawner.restore_archived_backup(archive_filename, restored_name)
+    user = current_user()
+    owner = user['name'] if user else None
+    with _capacity_lock:
+        capacity_ok, egg_error = check_egg_capacity(owner)
+        if not capacity_ok:
+            redirect(f"/backups?error={quote(egg_error)}")
+
+        success, message, new_spawn_name = spawner.restore_archived_backup(archive_filename, restored_name, owner=owner)
     if not success:
         redirect(f"/backups?error={message}")
 
@@ -446,6 +626,111 @@ def delete_archived_backup():
         redirect(f"/backups?error={message}")
 
     redirect('/backups?notice=Archived backup deleted permanently')
+
+
+# --- Admin Routes ---
+@get('/admin')
+@require_admin
+def admin_page():
+    return render_template(
+        './templates/admin',
+        users_list=users.list_users(),
+        notice=request.query.get('notice', '').strip(),
+        page_error=request.query.get('error', '').strip(),
+    )
+
+
+@post('/admin/users/create')
+@require_admin
+def admin_create_user():
+    username_raw = request.POST.get('username', '').strip()
+    password = request.POST.get('password', '')
+    eggs_raw = request.POST.get('eggs', '').strip()
+    is_admin = 'is_admin' in request.POST
+
+    valid, username, username_error = validate_username(username_raw)
+    if not valid:
+        redirect(f"/admin?error={quote(username_error)}")
+    if not password:
+        redirect('/admin?error=Password cannot be empty')
+    try:
+        eggs = int(eggs_raw) if eggs_raw else users.DEFAULT_EGGS
+        if eggs < 0:
+            raise ValueError
+    except ValueError:
+        redirect('/admin?error=Eggs must be a number of 0 or more')
+
+    try:
+        users.create_user(username, password, eggs=eggs, is_admin=is_admin)
+    except ValueError as exc:
+        redirect(f"/admin?error={quote(str(exc))}")
+
+    redirect(f"/admin?notice={quote(f'User {username} created with {eggs} egg(s)')}")
+
+
+@post('/admin/users/<username>/delete')
+@require_admin
+def admin_delete_user(username):
+    actor = current_user()
+    target = users.get_user(username)
+    if target is None:
+        redirect(f"/admin?error={quote(f'User {username} does not exist')}")
+    if username == actor['name']:
+        redirect('/admin?error=You cannot delete your own account')
+    if target.get('is_admin') and users.count_admins() <= 1:
+        redirect('/admin?error=Cannot delete the last admin')
+
+    users.delete_user(username)
+    # Orphaned servers become unowned (manageable by anyone) instead of locked
+    for spawn in spawner.spawns.values():
+        if spawn.owner == username:
+            spawn.set_owner(None)
+
+    redirect(f"/admin?notice={quote(f'User {username} deleted; their servers are now unowned')}")
+
+
+@post('/admin/users/<username>/eggs')
+@require_admin
+def admin_set_eggs(username):
+    try:
+        eggs = int(request.POST.get('eggs', '').strip())
+        if eggs < 0:
+            raise ValueError
+    except ValueError:
+        redirect('/admin?error=Eggs must be a number of 0 or more')
+
+    try:
+        users.set_eggs(username, eggs)
+    except ValueError as exc:
+        redirect(f"/admin?error={quote(str(exc))}")
+
+    redirect(f"/admin?notice={quote(f'{username} now has {eggs} egg(s)')}")
+
+
+@post('/admin/users/<username>/toggle-admin')
+@require_admin
+def admin_toggle_admin(username):
+    target = users.get_user(username)
+    if target is None:
+        redirect(f"/admin?error={quote(f'User {username} does not exist')}")
+    if target.get('is_admin') and users.count_admins() <= 1:
+        redirect('/admin?error=Cannot demote the last admin')
+
+    users.set_admin(username, not target.get('is_admin'))
+    role = 'an admin' if not target.get('is_admin') else 'a regular user'
+    redirect(f"/admin?notice={quote(f'{username} is now {role}')}")
+
+
+@error(403)
+def error403(err):
+    details = getattr(err, 'body', '') or 'You do not have permission to do this.'
+    return render_template(
+        './templates/error',
+        status_code=403,
+        title='Permission denied',
+        friendly_message="Oups... Uncle Vince says this server belongs to someone else.",
+        details=details,
+    )
 
 
 @error(404)

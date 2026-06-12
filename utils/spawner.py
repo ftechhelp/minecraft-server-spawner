@@ -20,7 +20,7 @@ class Spawner:
         spawn_folder = os.environ.get("SPAWNS_DIR", "./spawns")
         return os.path.isdir(os.path.join(spawn_folder, name))
 
-    def create_or_modify_spawn(self, name: str = None, new_port: int = 25565, new_volume: str = "./data", new_type: str = "FORGE", new_minecraftVersion: str = "LATEST", new_forgeVersion: str = "LATEST", force_recreate: bool = True) -> None:
+    def create_or_modify_spawn(self, name: str = None, new_port: int = 25565, new_volume: str = "./data", new_type: str = "FORGE", new_minecraftVersion: str = "LATEST", new_forgeVersion: str = "LATEST", force_recreate: bool = True) -> Spawn:
         spawn_name = name or str(uuid.uuid4())
         spawn = Spawn(spawn_name, new_port or 25565, new_volume or "./data", new_type or "FORGE", new_minecraftVersion or "LATEST", new_forgeVersion or "LATEST")
         docker_compose = spawn.get_docker_compose_contents()
@@ -60,6 +60,7 @@ class Spawner:
             print("This is normal for new servers and will be resolved when the server finishes starting.")
         
         self.spawns[spawn.name] = spawn
+        return spawn
 
     def _find_next_available_port(self, start_port: int = 25565, end_port: int = 25665):
         used_ports = set()
@@ -125,7 +126,7 @@ class Spawner:
         except Exception as e:
             return False, f"Failed to delete archived backup: {str(e)}"
 
-    def restore_archived_backup(self, archive_filename: str, restored_name: str = None) -> tuple:
+    def restore_archived_backup(self, archive_filename: str, restored_name: str = None, owner=None) -> tuple:
         safe_name = os.path.basename(archive_filename)
         archive_path = os.path.join(self.archived_backups_dir, safe_name)
         metadata_path = f"{archive_path}.json"
@@ -168,6 +169,7 @@ class Spawner:
             )
 
             restored_spawn = self.spawns[candidate_name]
+            restored_spawn.set_owner(owner)
             os.makedirs(restored_spawn.backups_dir, exist_ok=True)
 
             copied_backup_name = f"archived_restore_{safe_name}"

@@ -39,6 +39,20 @@
             </section>
 
             <section class="box">
+                <h2 class="title is-3">Accounts, login and eggs <span class="icon has-text-warning"><i class="fa-solid fa-egg"></i></span></h2>
+                <p>Every account has a balance of <strong>eggs</strong> — the panel's "spawns" currency. Your egg count is how many servers you may have <strong>running at the same time</strong>. Eggs are never spent: stopping or deleting a server frees its egg automatically. The navbar shows your eggs — grey eggs are in use, yellow eggs are free.</p>
+
+                <h3 class="title is-5">Not logged in?</h3>
+                <p>You can still browse everything, and you can create servers — they are <em>unowned</em>. All anonymous visitors share a single egg, so only one unowned server can run at a time. Unowned servers can be managed by anyone.</p>
+
+                <h3 class="title is-5">Logged in</h3>
+                <p>Servers you create belong to you. Only you and admins can start, stop, delete, or change them; other visitors see them read-only. Need more eggs? Ask an admin.</p>
+
+                <h3 class="title is-5">Admins</h3>
+                <p>Admins have an <strong>Admin</strong> link in the navbar leading to user management: create or delete users, set egg balances, and grant or revoke admin. Deleting a user makes their servers unowned. The last admin cannot be deleted or demoted. The first admin account is created from the <code>ADMIN_USERNAME</code> and <code>ADMIN_PASSWORD</code> environment variables on first start.</p>
+            </section>
+
+            <section class="box">
                 <h2 class="title is-3">Navigation and pages</h2>
                 <p>The top navigation bar is available on all normal pages. It links to <strong>Home</strong>, <strong>Documentation</strong>, <strong>Archived Backups</strong>, and an external <strong>Report an issue</strong> page on GitHub.</p>
                 <div class="table-container">

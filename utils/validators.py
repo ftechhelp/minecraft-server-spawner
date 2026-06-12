@@ -72,8 +72,29 @@ def validate_spawn_name(name: str) -> Tuple[bool, str, str]:
     
     if len(name) < 1:
         return False, "", "Spawn name must be at least 1 character"
-    
+
     return True, name, ""
+
+
+def validate_username(username: str) -> Tuple[bool, str, str]:
+    """
+    Validates account usernames (same character rules as spawn names).
+
+    Returns:
+        Tuple of (is_valid, validated_username, error_message)
+    """
+    if not username or not username.strip():
+        return False, "", "Username is required"
+
+    username = username.strip()
+
+    if not re.match(r'^[a-zA-Z0-9_-]+$', username):
+        return False, "", "Username can only contain letters, numbers, hyphens, and underscores"
+
+    if len(username) > 32:
+        return False, "", "Username must be 32 characters or less"
+
+    return True, username, ""
 
 
 def validate_minecraft_version(version: str) -> Tuple[bool, str, str]:

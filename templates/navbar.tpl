@@ -66,13 +66,37 @@
         </div>
 
         <div class="navbar-end">
+            <div class="navbar-item" title="{{eggs_used}} of {{eggs_total}} spawn egg{{'' if eggs_total == 1 else 's'}} in use">
+                %for i in range(eggs_total):
+                <span class="icon {{'has-text-grey-light' if i < eggs_used else 'has-text-warning'}}">
+                    <i class="fa-solid fa-egg"></i>
+                </span>
+                %end
+            </div>
+            %if user:
+            <div class="navbar-item">
+                <span class="icon"><i class="fa-solid fa-user"></i></span>
+                <span>{{user['name']}}</span>
+            </div>
+            %if user['is_admin']:
+            <a class="navbar-item" href="/admin">
+                Admin
+            </a>
+            %end
+            <div class="navbar-item">
+                <form method="post" action="/logout">
+                    <button type="submit" class="button is-light">Log out</button>
+                </form>
+            </div>
+            %else:
             <div class="navbar-item">
                 <div class="buttons">
-                    <a class="button is-primary">
+                    <a class="button is-primary" href="/login">
                         Log in
                     </a>
                 </div>
             </div>
+            %end
         </div>
     </div>
 </nav>

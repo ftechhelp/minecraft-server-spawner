@@ -10,9 +10,14 @@ services:
     volumes:
       - ./spawns:/app/spawns
       - ./backups:/app/backups
+      - ./panel_data:/app/panel_data
     environment:
       - SPAWNS_DIR=/app/spawns
       - ARCHIVED_BACKUPS_DIR=/app/backups
+      - PANEL_DATA_DIR=/app/panel_data
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
+      - COOKIE_SECRET=${COOKIE_SECRET:-}
       - WEB_PANEL_URL=${WEB_PANEL_URL:-http://localhost:8888}
       - SERVER_CONNECTION_HOST=${SERVER_CONNECTION_HOST:-localhost}
       - GEMINI_API_KEY=${GEMINI_API_KEY}

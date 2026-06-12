@@ -84,6 +84,9 @@ The current Docker Compose configuration sets these runtime environment variable
 - `GEMINI_API_KEY` - optional API key used for log analysis
 - `GEMINI_MODEL` - optional Gemini model name for log analysis
 - `TZ` - timezone used by the app and backup scheduler. Current configuration: `America/Vancouver`
+- `PANEL_DATA_DIR` - directory for panel data (user accounts, session secret). Default: `./panel_data`
+- `ADMIN_USERNAME` / `ADMIN_PASSWORD` - bootstrap the first admin account; only used on the very first start, when no users database exists yet
+- `COOKIE_SECRET` - secret for signing session cookies; leave blank to auto-generate one and persist it in `PANEL_DATA_DIR`
 
 `docker-compose.yml` now provides defaults for these variables, and `.env.example` includes the same values so you can override them easily per deployment.
 
@@ -150,6 +153,15 @@ The connection address shown on each spawn page uses `SERVER_CONNECTION_HOST` pl
 - Retention cleanup removes backups older than the configured `retention_days`.
 - When a spawn is deleted, the app attempts to archive the latest backup into the root archived backups directory before purging the live server files.
 - Archived backups can be restored into a new server. The app chooses a new name if needed and always assigns the next available port.
+
+### Users, login and eggs
+
+- Accounts are optional for browsing: everyone sees the full server list and each server's status, logs, and settings (read-only).
+- Each account has a balance of **eggs** — the "spawns" currency. Your egg count is the number of servers you may have **running at the same time**. Eggs are never consumed: stopping or deleting a server frees the egg automatically.
+- Visitors who are not logged in share a single egg: they can create and manage *unowned* servers, but only one unowned server can run at a time.
+- Servers you create are owned by you. Only you and admins can manage them (start/stop/delete, mods, console, backups, properties); other users see them read-only.
+- Admins manage accounts at `/admin`: create/delete users, set egg balances, and grant/revoke admin. The last admin cannot be deleted or demoted; deleting a user makes their servers unowned.
+- The first admin is created from `ADMIN_USERNAME`/`ADMIN_PASSWORD` on the very first start. User accounts and the session cookie secret live in `PANEL_DATA_DIR` (volume-mounted), so logins survive container rebuilds.
 
 ### Notes and operational caveats
 
