@@ -32,7 +32,7 @@ docker compose down --remove-orphans && docker compose up --build
 ## Environment Variables
 
 Set in `.env` (copy from `.env.example`):
-- `GEMINI_API_KEY` - Optional, enables AI log analysis
+- `GEMINI_API_KEY` - Optional, enables AI log analysis and the "Ask the docs" assistant
 - `WEB_PANEL_URL` - URL shown in UI (default: `http://localhost:8888`)
 - `SERVER_CONNECTION_HOST` - Host shown to players (default: `localhost`)
 - `IS_TEST` - Set to `true` to show "TEST SITE" banner in UI (default: `false`)

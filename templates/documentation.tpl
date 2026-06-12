@@ -13,6 +13,63 @@
             </div>
 
             <section class="box">
+                <h2 class="title is-4">
+                    <span class="icon has-text-link"><i class="fa-solid fa-circle-question"></i></span>
+                    Ask the docs
+                </h2>
+                <p>Ask a question and Gemini answers it from this documentation, so you don't have to search through the page.</p>
+                <form id="docsAskForm">
+                    <div class="field has-addons">
+                        <div class="control is-expanded">
+                            <input id="docsQuestion" class="input" type="text" maxlength="500" placeholder="e.g. How do I restore a server I deleted?">
+                        </div>
+                        <div class="control">
+                            <button type="submit" id="docsAskButton" class="button is-link">
+                                <span class="icon"><i class="fa-solid fa-paper-plane"></i></span>
+                                <span>Ask</span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                <div id="docsAnswer" class="notification is-hidden mt-3" style="white-space: pre-wrap;"></div>
+            </section>
+
+            <script type="text/javascript">
+                $(document).ready(function() {
+                    $('#docsAskForm').on('submit', function(event) {
+                        event.preventDefault();
+                        const question = $('#docsQuestion').val().trim();
+                        if (!question) {
+                            return;
+                        }
+                        const $button = $('#docsAskButton');
+                        const $answer = $('#docsAnswer');
+                        $button.addClass('is-loading').prop('disabled', true);
+                        $answer.removeClass('is-hidden is-danger').text('Thinking...');
+
+                        fetch('/docs/ask', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: new URLSearchParams({ question })
+                        })
+                            .then(async (response) => {
+                                const payload = await response.json().catch(() => ({}));
+                                if (!response.ok || !payload.ok) {
+                                    throw new Error(payload.error || 'The question could not be answered.');
+                                }
+                                $answer.text(payload.answer);
+                            })
+                            .catch((error) => {
+                                $answer.addClass('is-danger').text(error.message);
+                            })
+                            .finally(() => {
+                                $button.removeClass('is-loading').prop('disabled', false);
+                            });
+                    });
+                });
+            </script>
+
+            <section class="box">
                 <h2 class="title is-3">What this app does</h2>
                 <p>This panel lets you create, run, inspect, back up, restore, and delete Minecraft servers from a web interface. Each server is managed as its own Docker-based spawn with its own data folder, logs, mods folder, and backup history.</p>
                 <p>The app currently supports three server types:</p>

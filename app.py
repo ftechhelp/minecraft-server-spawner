@@ -3,7 +3,7 @@ import bottle
 from utils.spawner import Spawner
 from utils import users
 from utils.backup_scheduler import backup_scheduler
-from utils.log_analyzer import log_analyzer, LogAnalysisError
+from utils.log_analyzer import log_analyzer, LogAnalysisError, GeminiError, answer_docs_question
 from utils.validators import (
     validate_spawn_name,
     validate_port,
@@ -15,6 +15,7 @@ from utils.validators import (
     validate_username,
 )
 from dotenv import load_dotenv
+from html.parser import HTMLParser
 from urllib.parse import quote
 import functools
 import os
@@ -260,6 +261,52 @@ def logout():
 @get('/docs')
 def documentation():
     return render_template('./templates/documentation')
+
+
+class _HTMLTextExtractor(HTMLParser):
+    """Collects visible text from HTML, skipping script/style contents."""
+    def __init__(self):
+        super().__init__()
+        self._chunks = []
+        self._skip_depth = 0
+
+    def handle_starttag(self, tag, attrs):
+        if tag in ('script', 'style'):
+            self._skip_depth += 1
+
+    def handle_endtag(self, tag):
+        if tag in ('script', 'style') and self._skip_depth:
+            self._skip_depth -= 1
+
+    def handle_data(self, data):
+        if not self._skip_depth and data.strip():
+            self._chunks.append(data.strip())
+
+    def text(self) -> str:
+        return '\n'.join(self._chunks)
+
+
+@post('/docs/ask')
+def ask_docs():
+    response.content_type = 'application/json'
+    question = request.POST.get('question', '').strip()
+    if not question:
+        response.status = 400
+        return json.dumps({'ok': False, 'error': 'Please enter a question.'})
+    question = question[:500]
+
+    extractor = _HTMLTextExtractor()
+    extractor.feed(render_template('./templates/documentation'))
+
+    try:
+        answer = answer_docs_question(question, extractor.text())
+        return json.dumps({'ok': True, 'answer': answer})
+    except GeminiError as exc:
+        response.status = 400
+        return json.dumps({'ok': False, 'error': str(exc)})
+    except Exception as exc:
+        response.status = 500
+        return json.dumps({'ok': False, 'error': f'Unexpected failure: {str(exc)}'})
 
 
 @get('/backups')

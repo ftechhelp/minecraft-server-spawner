@@ -23,7 +23,7 @@ The point of this project was to keep everything as light and simple as possible
 - Create manual backups, enable daily backups, and configure retention days per server.
 - Archive the latest backup automatically before deleting a spawn.
 - Restore archived backups into a brand new server with a new name and next available port.
-- Optional AI-assisted log analysis when Gemini is configured.
+- Optional AI-assisted log analysis and an "Ask the docs" assistant when Gemini is configured.
 
 ## Installation
 
@@ -47,7 +47,7 @@ The point of this project was to keep everything as light and simple as possible
 4. Copy the example environment file and configure it:
     ```sh
     cp .env.example .env
-    # Optional: set GEMINI_API_KEY to enable log analysis
+    # Optional: set GEMINI_API_KEY to enable log analysis and the docs assistant
     # Adjust WEB_PANEL_URL and SERVER_CONNECTION_HOST for your deployment
     ```
 
@@ -81,8 +81,8 @@ The current Docker Compose configuration sets these runtime environment variable
 - `ARCHIVED_BACKUPS_DIR` - directory for archived backups preserved after server deletion. Default: `./backups`
 - `WEB_PANEL_URL` - full URL used by the UI for the web panel address and navbar home link. Default: `http://localhost:8888`
 - `SERVER_CONNECTION_HOST` - host name or IP shown to players when connecting to Minecraft servers. Default: `localhost`
-- `GEMINI_API_KEY` - optional API key used for log analysis
-- `GEMINI_MODEL` - optional Gemini model name for log analysis
+- `GEMINI_API_KEY` - optional API key used for log analysis and the "Ask the docs" assistant
+- `GEMINI_MODEL` - optional Gemini model name for log analysis and the docs assistant
 - `TZ` - timezone used by the app and backup scheduler. Current configuration: `America/Vancouver`
 - `PANEL_DATA_DIR` - directory for panel data (user accounts, session secret). Default: `./panel_data`
 - `ADMIN_USERNAME` / `ADMIN_PASSWORD` - bootstrap the first admin account; only used on the very first start, when no users database exists yet
@@ -90,7 +90,7 @@ The current Docker Compose configuration sets these runtime environment variable
 
 `docker-compose.yml` now provides defaults for these variables, and `.env.example` includes the same values so you can override them easily per deployment.
 
-If `GEMINI_API_KEY` is not set, the app still works normally, but the log analysis feature will return a configuration error instead of an analysis.
+If `GEMINI_API_KEY` is not set, the app still works normally, but the log analysis and "Ask the docs" features will return a configuration error instead of an answer.
 
 ## Usage
 
