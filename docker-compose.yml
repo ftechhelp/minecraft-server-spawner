@@ -1,5 +1,9 @@
 services:
-  minecraft-spawner:
+  # Service intentionally NOT named "minecraft-spawner": compose publishes the
+  # service name as a DNS alias on the shared external networks, and that
+  # collided with the prod container's name — the reverse proxy round-robined
+  # prod traffic to the dev panel. Route proxies by container_name instead.
+  panel:
     build: .
     container_name: ${CONTAINER_NAME:-minecraft-spawner}
     restart: unless-stopped

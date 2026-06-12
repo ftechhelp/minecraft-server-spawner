@@ -19,6 +19,7 @@ docker compose down --remove-orphans && docker compose up --build
 - **Always rebuild after changes**: Run `docker compose down --remove-orphans && docker compose up --build` after making changes to test them. The app runs inside Docker, so code changes require a rebuild to take effect.
 - **Container name conflicts**: If you get "container name already in use" errors, run `docker rm -f <container-name>` to force remove the conflicting container, then rebuild.
 - **Dev and prod side by side**: Compose targets containers by project name, which defaults to the directory basename — identical for the dev and prod checkouts. `COMPOSE_PROJECT_NAME` must be set in `.env` (`minecraft-spawner-dev` in dev, `minecraft-spawner` in prod), otherwise `docker compose down` in one checkout tears down the other's container.
+- **Service name is `panel`, on purpose**: compose publishes the service name as a DNS alias on the shared external `private`/`public` networks. A service named `minecraft-spawner` collided with prod's container name and the reverse proxy round-robined prod traffic to the dev panel. The proxy must route by `CONTAINER_NAME` (unique per env), never by the service name.
 ## Key Files
 
 - `app.py` - Bottle routes and request handling

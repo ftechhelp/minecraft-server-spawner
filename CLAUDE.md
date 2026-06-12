@@ -53,7 +53,8 @@ The `itzg/minecraft-server` image supports many types natively via `TYPE=` env v
 - Env vars in generated compose files are a list of `KEY=value` strings — always look up by key, not position.
 - Port range `25565-25665` is hardcoded in validation and port auto-selection.
 - Spawn names must be unique, alphanumeric plus hyphens/underscores; validation blocks path traversal.
-- Dev and prod checkouts share the same directory basename, so the default compose project name collides — `COMPOSE_PROJECT_NAME` must stay set in `.env` (`minecraft-spawner-dev` in dev, `minecraft-spawner` in prod) or `docker compose down` in one checkout tears down the other's container. Prod lives at `/SSD/apps/minecraft-server-spawner/minecraft-server-spawner`.- Bulk mod uploads stage files in batches under `.mod_upload_batches/`, then swap the mods directory and do a lightweight restart; single uploads restart directly.
+- Dev and prod checkouts share the same directory basename, so the default compose project name collides — `COMPOSE_PROJECT_NAME` must stay set in `.env` (`minecraft-spawner-dev` in dev, `minecraft-spawner` in prod) or `docker compose down` in one checkout tears down the other's container. Prod lives at `/SSD/apps/minecraft-server-spawner/minecraft-server-spawner`.
+- The compose service is named `panel`, not `minecraft-spawner` — compose publishes the service name as a DNS alias on the shared external `private`/`public` networks, and a service named `minecraft-spawner` collided with prod's container name, making the reverse proxy round-robin prod traffic to the dev panel. The reverse proxy must route by `CONTAINER_NAME` (unique per env), never by service name.- Bulk mod uploads stage files in batches under `.mod_upload_batches/`, then swap the mods directory and do a lightweight restart; single uploads restart directly.
 
 ## Conventions
 
