@@ -68,7 +68,7 @@
         <div class="navbar-end">
             <div class="navbar-item" title="{{eggs_used}} of {{eggs_total}} spawn egg{{'' if eggs_total == 1 else 's'}} in use">
                 %for i in range(eggs_total):
-                <span class="icon {{'has-text-grey-light' if i < eggs_used else 'has-text-warning'}}">
+                <span class="icon has-text-dark" {{!'style="opacity: 0.3;"' if i < eggs_used else ''}}>
                     <i class="fa-solid fa-egg"></i>
                 </span>
                 %end
