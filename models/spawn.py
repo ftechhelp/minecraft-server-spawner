@@ -4,6 +4,7 @@ from python_on_whales import docker, Container
 import shutil
 import tempfile
 import threading
+import time
 import zipfile
 import socket
 import struct
@@ -102,11 +103,27 @@ class Spawn:
             docker.compose.down(remove_images="all", volumes=True, remove_orphans=True)
             print(f"Spawn {self.name} down.")
 
-        if os.path.exists(self.directory):
-            shutil.rmtree(self.directory)
-            print(f"Spawn {self.name} directory purged.")
-        else:
-            print(f"No such spawn directory exists for {self.name}.")
+        # Remove the compose file first: concurrent loadSpawns() rebuilds a
+        # Spawn for any directory that still has one, and Spawn.__init__
+        # re-creates subdirectories — racing rmtree into ENOTEMPTY and leaving
+        # a zombie directory the UI then skips.
+        try:
+            os.remove(self.docker_compose_file)
+        except FileNotFoundError:
+            pass
+
+        for attempt in range(5):
+            try:
+                if os.path.exists(self.directory):
+                    shutil.rmtree(self.directory)
+                    print(f"Spawn {self.name} directory purged.")
+                else:
+                    print(f"No such spawn directory exists for {self.name}.")
+                break
+            except OSError:
+                if attempt == 4:
+                    raise
+                time.sleep(1)
 
     def archive_latest_backup(self, archive_dir: str) -> tuple:
         """Copy latest backup to archive dir with metadata. Returns (success, message, archive_filename)."""
