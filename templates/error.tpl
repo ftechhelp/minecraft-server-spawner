@@ -31,7 +31,7 @@
                             <span class="icon"><i class="fas fa-home"></i></span>
                             <span>Back to Home</span>
                         </a>
-                        <a href="/docs" class="button is-light">
+                        <a href="/docs" class="button">
                             <span class="icon"><i class="fas fa-book"></i></span>
                             <span>Open Documentation</span>
                         </a>

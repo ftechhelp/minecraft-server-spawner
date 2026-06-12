@@ -92,7 +92,7 @@
             %end
             <div class="navbar-item">
                 <form method="post" action="/logout">
-                    <button type="submit" class="button is-light">Log out</button>
+                    <button type="submit" class="button">Log out</button>
                 </form>
             </div>
             %else:

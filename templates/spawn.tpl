@@ -630,18 +630,18 @@
 
 <div class="container is-fluid p-4">
     %if page_error:
-    <div class="notification is-danger is-light">
+    <div class="notification is-danger">
         {{page_error}}
     </div>
     %end
     %if not can_manage:
-    <div class="notification is-info is-light">
+    <div class="notification is-info">
         <span class="icon"><i class="fa-solid fa-lock"></i></span>
         This server is owned by <strong>{{spawn.owner}}</strong>. Log in as the owner or an admin to manage it.
     </div>
     %end
     %if not spawn.owner and user:
-    <div class="notification is-info is-light is-flex is-justify-content-space-between is-align-items-center is-flex-wrap-wrap">
+    <div class="notification is-info is-flex is-justify-content-space-between is-align-items-center is-flex-wrap-wrap">
         <span>
             <span class="icon"><i class="fa-solid fa-egg"></i></span>
             This server is unowned. Claim it to become its owner — only you and admins will be able to manage it. Claiming a running server uses one of your free eggs.
@@ -683,7 +683,7 @@
                                 <td><strong>Owner:</strong></td>
                                 <td>
                                     %if spawn.owner:
-                                    <span class="tag is-info is-light">{{spawn.owner}}</span>
+                                    <span class="tag is-info">{{spawn.owner}}</span>
                                     %else:
                                     <span class="tag">unowned</span>
                                     %end
@@ -705,7 +705,7 @@
                                 <td><strong>Connect:</strong></td>
                                 <td>
                                     <code>{{server_connection_host}}:{{spawn.port}}</code>
-                                    <button id="copyAddressButton" type="button" class="button is-small is-link is-light ml-2">
+                                    <button id="copyAddressButton" type="button" class="button is-small is-link ml-2">
                                         <span class="icon"><i class="fas fa-copy"></i></span>
                                         <span>Copy</span>
                                     </button>
@@ -768,7 +768,7 @@
                 <h2 class="title is-5">Mods ({{len(mods)}})</h2>
                 %if can_manage and len(mods) > 0:
                 <form id="deleteAllModsForm" action="/spawn/{{spawn.name}}/mods/delete-all" method="post" class="mb-3">
-                    <button id="deleteAllModsButton" type="button" class="button is-danger is-light is-small is-fullwidth">
+                    <button id="deleteAllModsButton" type="button" class="button is-danger is-small is-fullwidth">
                         <span class="icon"><i class="fas fa-trash"></i></span>
                         <span>Delete All Mods</span>
                     </button>
@@ -813,7 +813,7 @@
                     <div id="bulkUploadProgressWrapper" class="box is-hidden p-3 mb-3">
                         <div class="is-flex is-justify-content-space-between is-align-items-center mb-2">
                             <span id="bulkUploadProgressStatus" class="has-text-weight-semibold">Preparing upload...</span>
-                            <span id="bulkUploadProgressPercent" class="tag is-info is-light">0%</span>
+                            <span id="bulkUploadProgressPercent" class="tag is-info">0%</span>
                         </div>
                         <progress id="bulkUploadProgressBar" class="progress is-primary mb-2" value="0" max="100">0%</progress>
                         <div class="is-size-7 has-text-grey">
@@ -845,7 +845,7 @@
                     <div id="singleUploadProgressWrapper" class="box is-hidden p-3 mb-3">
                         <div class="is-flex is-justify-content-space-between is-align-items-center mb-2">
                             <span id="singleUploadProgressStatus" class="has-text-weight-semibold">Preparing upload...</span>
-                            <span id="singleUploadProgressPercent" class="tag is-info is-light">0%</span>
+                            <span id="singleUploadProgressPercent" class="tag is-info">0%</span>
                         </div>
                         <progress id="singleUploadProgressBar" class="progress is-info mb-2" value="0" max="100">0%</progress>
                         <div class="is-size-7 has-text-grey">

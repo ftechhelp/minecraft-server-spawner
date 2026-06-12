@@ -28,13 +28,13 @@
         <p class="subtitle is-6">Backups in this page are preserved in the root <code>backups</code> folder and survive spawn deletion.</p>
 
         %if notice:
-        <div class="notification is-success is-light">
+        <div class="notification is-success">
             {{notice}}
         </div>
         %end
 
         %if page_error:
-        <div class="notification is-danger is-light">
+        <div class="notification is-danger">
             {{page_error}}
         </div>
         %end
@@ -105,7 +105,7 @@
             <button class="delete close-delete-modal" aria-label="close"></button>
         </header>
         <section class="modal-card-body">
-            <article class="message is-danger is-light">
+            <article class="message is-danger">
                 <div class="message-body">
                     <p class="has-text-weight-semibold mb-2">This will permanently delete the archived backup.</p>
                     <p>Backup: <code id="deleteBackupName"></code></p>

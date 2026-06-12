@@ -5,12 +5,12 @@
         <h1 class="title is-3">User Management</h1>
 
         %if notice:
-        <div class="notification is-success is-light">
+        <div class="notification is-success">
             {{notice}}
         </div>
         %end
         %if page_error:
-        <div class="notification is-danger is-light">
+        <div class="notification is-danger">
             {{page_error}}
         </div>
         %end
@@ -59,7 +59,7 @@
                         <td class="is-vcentered">
                             {{account['name']}}
                             %if user and account['name'] == user['name']:
-                            <span class="tag is-info is-light">you</span>
+                            <span class="tag is-info">you</span>
                             %end
                         </td>
                         <td>

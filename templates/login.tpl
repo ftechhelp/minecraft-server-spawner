@@ -6,7 +6,7 @@
             <h1 class="title is-4 has-text-centered">Log in</h1>
 
             %if login_error:
-            <div class="notification is-danger is-light">
+            <div class="notification is-danger">
                 {{login_error}}
             </div>
             %end

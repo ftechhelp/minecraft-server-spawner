@@ -59,5 +59,6 @@ The `itzg/minecraft-server` image supports many types natively via `TYPE=` env v
 ## Conventions
 
 - Stack is fixed: Python, Bottle, Bulma CSS, Docker (see `.windsurf/rules/stack.md`). Reference docs: [itzg image](https://docker-minecraft-server.readthedocs.io/en/latest/), [Bottle](https://bottlepy.org/docs/dev/), [Bulma](https://bulma.io/documentation/).
+- Never use Bulma's `is-light` modifier — the panel is viewed on a dark background and `is-light` forces glaring near-white elements. Use the default element (theme-aware grey) or the solid color variant (`is-info`, `is-danger`, …) instead.
 - When changing user-facing behavior, update both `README.md` and the in-app docs (`templates/documentation.tpl`).
 - `AGENTS.md` carries the same agent guidance — keep the two files in sync when editing either.

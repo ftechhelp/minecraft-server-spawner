@@ -2,7 +2,7 @@
 
 <section class="section pt-4 pb-5">
     %if page_error:
-    <div class="notification is-danger is-light">
+    <div class="notification is-danger">
         {{page_error}}
     </div>
     %end
@@ -24,7 +24,7 @@
                 </header>
                 <section class="modal-card-body">
                     %if create_error:
-                    <div class="notification is-danger is-light">
+                    <div class="notification is-danger">
                         {{create_error}}
                     </div>
                     %end
@@ -133,7 +133,7 @@
                         <span class="tag">{{spawn.type.title()}} {{spawn.forge_version}}</span>
                         %end
                         <span class="tag">Port {{spawn.port}}</span>
-                        <span class="tag {{'is-info is-light' if spawn.owner else ''}}">
+                        <span class="tag {{'is-info' if spawn.owner else ''}}">
                             {{spawn.owner if spawn.owner else 'unowned'}}
                         </span>
                     </div>

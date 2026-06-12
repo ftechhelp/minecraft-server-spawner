@@ -6,7 +6,7 @@
             <h1 class="title is-1">User Documentation</h1>
             <p class="subtitle">Complete guide for every page, every main action, and the most common recovery workflows in this app</p>
 
-            <div class="notification is-info is-light">
+            <div class="notification is-info">
                 <p><strong>Web panel:</strong> <code>{{web_panel_url}}</code></p>
                 <p><strong>Minecraft connection format:</strong> <code>{{server_connection_host}}:PORT</code></p>
                 <p><strong>Example:</strong> <code>{{server_connection_example}}</code></p>
@@ -199,7 +199,7 @@
                     </table>
                 </div>
 
-                <div class="notification is-warning is-light">
+                <div class="notification is-warning">
                     <p><strong>Important:</strong> deleting a spawn removes the live server files. Before deletion, the app attempts to archive the latest backup into the root archived backups area.</p>
                 </div>
             </section>
@@ -271,7 +271,7 @@
                     <li>Restart or recreate the server to fully apply the removal.</li>
                 </ol>
 
-                <div class="notification is-warning is-light">
+                <div class="notification is-warning">
                     <p><strong>Important:</strong> only files ending in <code>.jar</code> are accepted for upload.</p>
                     <p><strong>Tip:</strong> always create a backup before changing your mod set.</p>
                 </div>
@@ -320,7 +320,7 @@
                     <li>The server is recreated and started again.</li>
                 </ol>
 
-                <div class="notification is-danger is-light">
+                <div class="notification is-danger">
                     <p><strong>Restore warning:</strong> restoring a backup replaces the current live world and data for that spawn.</p>
                 </div>
             </section>
@@ -363,11 +363,11 @@
                 <h3 class="title is-5">Delete an archived backup</h3>
                 <p>Use the delete button to remove the archived backup permanently. A confirmation modal is shown first.</p>
 
-                <div class="notification is-warning is-light">
+                <div class="notification is-warning">
                     <p><strong>Important:</strong> archived backups are your recovery points after live server deletion.</p>
                 </div>
 
-                <div class="notification is-danger is-light">
+                <div class="notification is-danger">
                     <p><strong>Permanent action:</strong> deleting an archived backup cannot be undone.</p>
                 </div>
             </section>
@@ -411,7 +411,7 @@
                     <li><code>whitelist add playername</code></li>
                     <li><code>save-all</code></li>
                 </ul>
-                <div class="notification is-warning is-light">
+                <div class="notification is-warning">
                     <p><strong>Important:</strong> only send commands you would normally trust on a live Minecraft server. The app does not add a confirmation step for console commands.</p>
                 </div>
             </section>
