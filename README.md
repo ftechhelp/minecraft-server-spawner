@@ -110,9 +110,13 @@ python app.py
 
 Then access the web interface at the URL configured by `WEB_PANEL_URL`. By default, that is `http://localhost:8888`.
 
+### Home page dashboard
+
+The home page shows a stats bar (total servers, running count, players online, eggs in use) and a card per server with its status, type, versions, port, owner, and live player count. Status and player counts refresh automatically every 10 seconds. Each card links to the server's detail page and offers quick Start/Stop buttons when you have permission to manage that server.
+
 ### Create a server
 
-From the home page you can create a spawn with:
+Click **+ New Server** on the home page to create a spawn with:
 
 - `name` - optional; if blank the app generates a UUID-based name
 - `port` - optional; if blank the app assigns the next free port in `25565-25665`

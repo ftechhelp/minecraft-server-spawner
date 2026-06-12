@@ -68,9 +68,16 @@
         <div class="navbar-end">
             <div class="navbar-item" title="{{eggs_used}} of {{eggs_total}} spawn egg{{'' if eggs_total == 1 else 's'}} in use">
                 %for i in range(eggs_total):
-                <span class="icon has-text-dark" {{!'style="opacity: 0.3;"' if i < eggs_used else ''}}>
+                %if i < eggs_used:
+                <span class="icon has-text-dark egg-cracked">
+                    <i class="fa-solid fa-egg egg-piece egg-piece-top"></i>
+                    <i class="fa-solid fa-egg egg-piece egg-piece-bottom"></i>
+                </span>
+                %else:
+                <span class="icon has-text-dark">
                     <i class="fa-solid fa-egg"></i>
                 </span>
+                %end
                 %end
             </div>
             %if user:

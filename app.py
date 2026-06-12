@@ -147,10 +147,30 @@ spawner.ensure_all_spawns_up()
 backup_scheduler.start(spawner)
 atexit.register(backup_scheduler.stop)
 
+def render_index(create_error=None, create_form=None):
+    user = current_user()
+    can_manage = {name: users.can_manage_spawn(user, spawn.owner) for name, spawn in spawner.spawns.items()}
+    return render_template(
+        './templates/index',
+        spawns=spawner.spawns,
+        can_manage=can_manage,
+        create_error=create_error,
+        create_form=create_form or {},
+        page_error=request.query.get('error', '').strip(),
+    )
+
+
+def local_redirect_target(default: str) -> str:
+    target = request.POST.get('redirect', '').strip()
+    if target.startswith('/') and not target.startswith('//'):
+        return target
+    return default
+
+
 @get('/')
 def index():
     spawner.loadSpawns()
-    return render_template('./templates/index', spawns=spawner.spawns, create_error=None, create_form={})
+    return render_index()
 
 
 @get('/login')
@@ -215,52 +235,52 @@ def spawn():
     if raw_name:
         valid_name, name, name_error = validate_spawn_name(raw_name)
         if not valid_name:
-            return render_template('./templates/index', spawns=spawner.spawns, create_error=name_error, create_form=create_form)
+            return render_index(create_error=name_error, create_form=create_form)
 
         if spawner.spawn_name_exists(name):
-            return render_template('./templates/index', spawns=spawner.spawns, create_error=f"Spawn name '{name}' already exists", create_form=create_form)
+            return render_index(create_error=f"Spawn name '{name}' already exists", create_form=create_form)
 
         if spawner.spawn_directory_exists(name):
-            return render_template('./templates/index', spawns=spawner.spawns, create_error=f"Spawn directory for '{name}' already exists on disk", create_form=create_form)
+            return render_index(create_error=f"Spawn directory for '{name}' already exists on disk", create_form=create_form)
 
     if raw_port:
         valid_port, port, port_error = validate_port(raw_port)
         if not valid_port:
-            return render_template('./templates/index', spawns=spawner.spawns, create_error=port_error, create_form=create_form)
+            return render_index(create_error=port_error, create_form=create_form)
 
         is_port_available, port_conflict_error = check_port_availability(port, spawner)
         if not is_port_available:
-            return render_template('./templates/index', spawns=spawner.spawns, create_error=port_conflict_error, create_form=create_form)
+            return render_index(create_error=port_conflict_error, create_form=create_form)
     else:
         port = find_next_available_port(spawner)
         if port is None:
-            return render_template('./templates/index', spawns=spawner.spawns, create_error="No available ports left in the allowed range (25565-25665)", create_form=create_form)
+            return render_index(create_error="No available ports left in the allowed range (25565-25665)", create_form=create_form)
 
     valid_type, server_type, type_error = validate_server_type(raw_type)
     if not valid_type:
-        return render_template('./templates/index', spawns=spawner.spawns, create_error=type_error, create_form=create_form)
+        return render_index(create_error=type_error, create_form=create_form)
 
     minecraft_version_input = raw_minecraft_version or 'LATEST'
     valid_version, minecraft_version, version_error = validate_minecraft_version(minecraft_version_input)
     if not valid_version:
-        return render_template('./templates/index', spawns=spawner.spawns, create_error=version_error, create_form=create_form)
+        return render_index(create_error=version_error, create_form=create_form)
 
     forge_version_input = raw_forge_version or 'LATEST'
     valid_forge, forge_version, forge_error = validate_forge_version(forge_version_input, server_type)
     if not valid_forge:
-        return render_template('./templates/index', spawns=spawner.spawns, create_error=forge_error, create_form=create_form)
+        return render_index(create_error=forge_error, create_form=create_form)
 
     user = current_user()
     owner = user['name'] if user else None
     with _capacity_lock:
         capacity_ok, egg_error = check_egg_capacity(owner)
         if not capacity_ok:
-            return render_template('./templates/index', spawns=spawner.spawns, create_error=egg_error, create_form=create_form)
+            return render_index(create_error=egg_error, create_form=create_form)
 
         try:
             new_spawn = spawner.create_or_modify_spawn(name=name, new_port=port, new_type=server_type, new_minecraftVersion=minecraft_version, new_forgeVersion=forge_version)
         except Exception as exc:
-            return render_template('./templates/index', spawns=spawner.spawns, create_error=f"Failed to create server: {str(exc)}", create_form=create_form)
+            return render_index(create_error=f"Failed to create server: {str(exc)}", create_form=create_form)
 
         new_spawn.set_owner(owner)
 
@@ -310,21 +330,22 @@ def recreate_spawn(name):
 @require_spawn_permission
 def start_spawn(name):
     spawn = spawner.spawns[name]
+    redirect_to = local_redirect_target(f"/spawn/{name}")
     with _capacity_lock:
         spawn.refreshContainerInformation()
         if spawn.get_status() not in OCCUPIED_STATUSES:
             capacity_ok, egg_error = check_egg_capacity(spawn.owner, exclude_spawn=spawn)
             if not capacity_ok:
-                redirect(f"/spawn/{name}?error={quote(egg_error)}")
+                redirect(f"{redirect_to}?error={quote(egg_error)}")
         spawn.start()
-    redirect(f"/spawn/{name}")
+    redirect(redirect_to)
 
 @post('/spawn/<name>/stop')
 @require_spawn_permission
 def stop_spawn(name):
     spawn = spawner.spawns[name]
     spawn.stop()
-    redirect(f"/spawn/{name}")
+    redirect(local_redirect_target(f"/spawn/{name}"))
 
 @post('/spawn/<name>/delete')
 @require_spawn_permission

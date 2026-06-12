@@ -9,6 +9,16 @@
         <style>
             .loading-spinner { display: inline-block; width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite; }
             @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+            /* Used eggs: the glyph is split into two clipped pieces left in place, with a thin
+               zigzag gap between them so the background shows through as a subtle crack line */
+            .egg-cracked { position: relative; opacity: 0.55; }
+            .egg-cracked .egg-piece { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+            .egg-cracked .egg-piece-top {
+                clip-path: polygon(0% 0%, 100% 0%, 100% 30%, 75% 40%, 55% 26%, 35% 42%, 15% 30%, 0% 38%);
+            }
+            .egg-cracked .egg-piece-bottom {
+                clip-path: polygon(0% 45%, 15% 37%, 35% 49%, 55% 33%, 75% 47%, 100% 37%, 100% 100%, 0% 100%);
+            }
         </style>
         <script>
             function showLoadingModal(message = 'Please wait...') {

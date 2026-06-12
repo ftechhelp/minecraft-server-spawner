@@ -40,7 +40,7 @@
 
             <section class="box">
                 <h2 class="title is-3">Accounts, login and eggs <span class="icon has-text-warning"><i class="fa-solid fa-egg"></i></span></h2>
-                <p>Every account has a balance of <strong>eggs</strong> — the panel's "spawns" currency. Your egg count is how many servers you may have <strong>running at the same time</strong>. Eggs are never spent: stopping or deleting a server frees its egg automatically. The navbar shows your eggs — grey eggs are in use, yellow eggs are free.</p>
+                <p>Every account has a balance of <strong>eggs</strong> — the panel's "spawns" currency. Your egg count is how many servers you may have <strong>running at the same time</strong>. Eggs are never spent: stopping or deleting a server frees its egg automatically. The navbar shows your eggs — cracked-open eggs are in use, whole eggs are free.</p>
 
                 <h3 class="title is-5">Not logged in?</h3>
                 <p>You can still browse everything, and you can create servers — they are <em>unowned</em>. All anonymous visitors share a single egg, so only one unowned server can run at a time. Unowned servers can be managed by anyone.</p>
@@ -102,14 +102,15 @@
 
             <section class="box">
                 <h2 class="title is-3">Home page</h2>
-                <p>The home page has two jobs:</p>
+                <p>The home page is a dashboard with three areas:</p>
                 <ul>
-                    <li>Create a new server</li>
-                    <li>Show the list of existing servers and their current container status</li>
+                    <li>A stats bar with total servers, how many are running, total players online, and eggs in use</li>
+                    <li>A card grid showing every server with its status, type, versions, port, owner, player count, and quick actions</li>
+                    <li>A create-server dialog, opened with the <strong>+ New Server</strong> button</li>
                 </ul>
 
                 <h3 class="title is-5">Create server form</h3>
-                <p>The form accepts these values:</p>
+                <p>Click <strong>+ New Server</strong> to open the form. It accepts these values:</p>
                 <ul>
                     <li><strong>Name</strong> - optional. If left blank, the app generates a random UUID-style name.</li>
                     <li><strong>Port</strong> - optional. If left blank, the app assigns the next available port in the allowed range.</li>
@@ -130,13 +131,15 @@
                     <li>Only <strong>FORGE</strong>, <strong>NEOFORGE</strong>, and <strong>VANILLA</strong> are accepted as server types.</li>
                 </ul>
 
-                <h3 class="title is-5">Spawn list</h3>
-                <p>Below the create form, the page lists existing spawns. Each spawn links to its detail page and shows a color-coded status:</p>
+                <h3 class="title is-5">Server cards</h3>
+                <p>Each server has a card showing its name (linked to the detail page), type, Minecraft and mod loader versions, port, owner, and a color-coded status tag:</p>
                 <ul>
                     <li><strong>Green</strong> for <code>running</code></li>
                     <li><strong>Yellow</strong> for transitional states such as <code>created</code>, <code>restarting</code>, <code>removing</code>, <code>paused</code>, or <code>exited</code></li>
                     <li><strong>Red</strong> for other failure or unavailable states</li>
                 </ul>
+                <p>Status tags, per-server player counts, and the stats bar refresh automatically every 10 seconds without reloading the page.</p>
+                <p>Each card has a <strong>Manage</strong> link to the detail page, plus a quick <strong>Start</strong> or <strong>Stop</strong> button when you have permission to manage that server (you own it, you are an admin, or it is unowned). Starting a server from the dashboard still requires a free egg.</p>
 
                 <h3 class="title is-5">Create form errors</h3>
                 <p>If server creation fails validation, the page shows an error notification at the top and keeps the values you already entered so you can correct only the problem field.</p>
