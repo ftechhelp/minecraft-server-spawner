@@ -46,6 +46,7 @@
                 <p>You can still browse everything, and you can create servers — they are <em>unowned</em>. All anonymous visitors share a single egg, so only one unowned server can run at a time. Unowned servers can be managed by anyone.</p>
 
                 <h3 class="title is-5">Logged in</h3>
+                <p>The first time you log in, the panel asks you to set your own password before you can do anything else — the password your account was created with is only temporary.</p>
                 <p>Servers you create belong to you. Only you and admins can start, stop, delete, or change them; other visitors see them read-only. Need more eggs? Ask an admin.</p>
                 <p>You can also <strong>claim</strong> an unowned server to take ownership of it — use the <strong>Claim</strong> button on its dashboard card or the banner on its detail page. Claiming a server that is currently running requires a free egg, because the server moves off the shared anonymous egg and onto one of yours.</p>
 

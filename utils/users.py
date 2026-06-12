@@ -80,7 +80,7 @@ def list_users() -> list:
     return [_with_name(name, record) for name, record in sorted(db["users"].items())]
 
 
-def create_user(username: str, password: str, eggs: int = DEFAULT_EGGS, is_admin: bool = False) -> None:
+def create_user(username: str, password: str, eggs: int = DEFAULT_EGGS, is_admin: bool = False, must_change_password: bool = False) -> None:
     with _users_lock:
         db = _load_db()
         if username in db["users"]:
@@ -89,8 +89,19 @@ def create_user(username: str, password: str, eggs: int = DEFAULT_EGGS, is_admin
             "password_hash": hash_password(password),
             "is_admin": bool(is_admin),
             "eggs": max(0, int(eggs)),
+            "must_change_password": bool(must_change_password),
             "created_at": datetime.now().astimezone().isoformat(timespec="seconds"),
         }
+        _save_db(db)
+
+
+def set_password(username: str, password: str, must_change: bool = False) -> None:
+    with _users_lock:
+        db = _load_db()
+        if username not in db["users"]:
+            raise ValueError(f"User '{username}' does not exist")
+        db["users"][username]["password_hash"] = hash_password(password)
+        db["users"][username]["must_change_password"] = bool(must_change)
         _save_db(db)
 
 
@@ -142,7 +153,8 @@ def bootstrap_admin() -> None:
     admin_password = os.environ.get("ADMIN_PASSWORD", "").strip()
     if not admin_username or not admin_password:
         return
-    create_user(admin_username, admin_password, eggs=5, is_admin=True)
+    # The env password lives in plaintext in .env, so force a rotation at first login
+    create_user(admin_username, admin_password, eggs=5, is_admin=True, must_change_password=True)
     print(f"Bootstrapped admin user '{admin_username}'.")
 
 

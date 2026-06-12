@@ -166,6 +166,7 @@ The connection address shown on each spawn page uses `SERVER_CONNECTION_HOST` pl
 - Servers you create are owned by you. Only you and admins can manage them (start/stop/delete, mods, console, backups, properties); other users see them read-only.
 - Logged-in users can **claim** an unowned server (from its page or the dashboard card) to take ownership of it. Claiming a server that is currently running requires a free egg, since it moves from the shared anonymous egg onto yours.
 - Admins manage accounts at `/admin`: create/delete users, set egg balances, and grant/revoke admin. The last admin cannot be deleted or demoted; deleting a user makes their servers unowned.
+- Passwords set when an account is created are temporary: on first login, the user is required to choose their own password before they can use the panel. This also applies to the seeded admin, since its initial password sits in plaintext in `.env`.
 - The first admin is created from `ADMIN_USERNAME`/`ADMIN_PASSWORD` on the very first start. User accounts and the session cookie secret live in `PANEL_DATA_DIR` (volume-mounted), so logins survive container rebuilds.
 
 ### Notes and operational caveats

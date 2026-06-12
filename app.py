@@ -71,6 +71,18 @@ def render_template(template_path: str, **kwargs):
     return bottle_template(template_path, **template_context)
 
 
+@bottle.hook('before_request')
+def enforce_password_change():
+    """Users flagged must_change_password can only reach /password and /logout."""
+    if request.path in ('/password', '/logout'):
+        return
+    user = current_user()
+    if user and user.get('must_change_password'):
+        if request.method == 'GET':
+            redirect(f"/password?next={quote(request.fullpath)}")
+        redirect('/password')
+
+
 def require_spawn_permission(handler):
     @functools.wraps(handler)
     def wrapper(name, *args, **kwargs):
@@ -192,6 +204,51 @@ def login_submit():
         return render_template('./templates/login', login_error='Invalid username or password', next_url=next_url)
     session = {'u': user['name'], 'exp': int(time.time()) + SESSION_MAX_AGE}
     response.set_cookie('session', session, secret=COOKIE_SECRET, max_age=SESSION_MAX_AGE, httponly=True, path='/', samesite='lax')
+    if user.get('must_change_password'):
+        redirect(f"/password?next={quote(next_url)}")
+    redirect(next_url)
+
+
+@get('/password')
+def password_page():
+    user = current_user()
+    if user is None:
+        redirect(f"/login?next={quote('/password')}")
+    return render_template(
+        './templates/password',
+        password_error=None,
+        next_url=request.query.get('next', '/'),
+        forced=user.get('must_change_password', False),
+    )
+
+
+@post('/password')
+def password_submit():
+    user = current_user()
+    if user is None:
+        redirect('/login')
+    next_url = request.POST.get('next', '/').strip() or '/'
+    if not next_url.startswith('/') or next_url.startswith('//'):
+        next_url = '/'
+
+    def fail(message):
+        return render_template(
+            './templates/password',
+            password_error=message,
+            next_url=next_url,
+            forced=user.get('must_change_password', False),
+        )
+
+    new_password = request.POST.get('new_password', '')
+    confirm_password = request.POST.get('confirm_password', '')
+    if not new_password:
+        return fail('Password cannot be empty')
+    if new_password != confirm_password:
+        return fail('Passwords do not match')
+    if users.verify_password(new_password, user.get('password_hash', '')):
+        return fail('The new password must be different from your current one')
+
+    users.set_password(user['name'], new_password)
     redirect(next_url)
 
 
@@ -704,11 +761,11 @@ def admin_create_user():
         redirect('/admin?error=Eggs must be a number of 0 or more')
 
     try:
-        users.create_user(username, password, eggs=eggs, is_admin=is_admin)
+        users.create_user(username, password, eggs=eggs, is_admin=is_admin, must_change_password=True)
     except ValueError as exc:
         redirect(f"/admin?error={quote(str(exc))}")
 
-    redirect(f"/admin?notice={quote(f'User {username} created with {eggs} egg(s)')}")
+    redirect(f"/admin?notice={quote(f'User {username} created with {eggs} egg(s); they must set a new password at first login')}")
 
 
 @post('/admin/users/<username>/delete')

@@ -39,6 +39,9 @@
                     </div>
                 </div>
             </form>
+            <p class="has-text-grey is-size-7">
+                The password you enter here is temporary — the user must set their own password the first time they log in.
+            </p>
         </div>
 
         <div class="box">
@@ -60,6 +63,9 @@
                             {{account['name']}}
                             %if user and account['name'] == user['name']:
                             <span class="tag is-info">you</span>
+                            %end
+                            %if account.get('must_change_password'):
+                            <span class="tag is-warning" title="Has not logged in yet — still on the temporary password">temp password</span>
                             %end
                         </td>
                         <td>
