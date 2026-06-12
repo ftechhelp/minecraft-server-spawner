@@ -47,6 +47,7 @@
 
                 <h3 class="title is-5">Logged in</h3>
                 <p>Servers you create belong to you. Only you and admins can start, stop, delete, or change them; other visitors see them read-only. Need more eggs? Ask an admin.</p>
+                <p>You can also <strong>claim</strong> an unowned server to take ownership of it — use the <strong>Claim</strong> button on its dashboard card or the banner on its detail page. Claiming a server that is currently running requires a free egg, because the server moves off the shared anonymous egg and onto one of yours.</p>
 
                 <h3 class="title is-5">Admins</h3>
                 <p>Admins have an <strong>Admin</strong> link in the navbar leading to user management: create or delete users, set egg balances, and grant or revoke admin. Deleting a user makes their servers unowned. The last admin cannot be deleted or demoted. The first admin account is created from the <code>ADMIN_USERNAME</code> and <code>ADMIN_PASSWORD</code> environment variables on first start.</p>

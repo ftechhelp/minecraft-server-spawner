@@ -164,6 +164,7 @@ The connection address shown on each spawn page uses `SERVER_CONNECTION_HOST` pl
 - Each account has a balance of **eggs** — the "spawns" currency. Your egg count is the number of servers you may have **running at the same time**. Eggs are never consumed: stopping or deleting a server frees the egg automatically.
 - Visitors who are not logged in share a single egg: they can create and manage *unowned* servers, but only one unowned server can run at a time.
 - Servers you create are owned by you. Only you and admins can manage them (start/stop/delete, mods, console, backups, properties); other users see them read-only.
+- Logged-in users can **claim** an unowned server (from its page or the dashboard card) to take ownership of it. Claiming a server that is currently running requires a free egg, since it moves from the shared anonymous egg onto yours.
 - Admins manage accounts at `/admin`: create/delete users, set egg balances, and grant/revoke admin. The last admin cannot be deleted or demoted; deleting a user makes their servers unowned.
 - The first admin is created from `ADMIN_USERNAME`/`ADMIN_PASSWORD` on the very first start. User accounts and the session cookie secret live in `PANEL_DATA_DIR` (volume-mounted), so logins survive container rebuilds.
 

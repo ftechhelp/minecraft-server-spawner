@@ -640,6 +640,17 @@
         This server is owned by <strong>{{spawn.owner}}</strong>. Log in as the owner or an admin to manage it.
     </div>
     %end
+    %if not spawn.owner and user:
+    <div class="notification is-info is-light is-flex is-justify-content-space-between is-align-items-center is-flex-wrap-wrap">
+        <span>
+            <span class="icon"><i class="fa-solid fa-egg"></i></span>
+            This server is unowned. Claim it to become its owner — only you and admins will be able to manage it. Claiming a running server uses one of your free eggs.
+        </span>
+        <form method="post" action="/spawn/{{spawn.name}}/claim">
+            <button type="submit" class="button is-link">Claim server</button>
+        </form>
+    </div>
+    %end
     <!-- Server Info Card -->
     <div class="columns is-multiline">
         <div class="column is-12-mobile is-6-tablet is-4-desktop">
@@ -667,6 +678,16 @@
                             <tr>
                                 <td><strong>Port:</strong></td>
                                 <td>{{spawn.port}}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Owner:</strong></td>
+                                <td>
+                                    %if spawn.owner:
+                                    <span class="tag is-info is-light">{{spawn.owner}}</span>
+                                    %else:
+                                    <span class="tag">unowned</span>
+                                    %end
+                                </td>
                             </tr>
                             <tr>
                                 <td><strong>Players Online:</strong></td>

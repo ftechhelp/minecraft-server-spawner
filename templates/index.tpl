@@ -104,7 +104,7 @@
     </nav>
 
     %if not spawns:
-    <div class="notification is-light has-text-centered">
+    <div class="notification has-text-centered">
         No servers yet. Click <strong>+ New Server</strong> above to spawn your first one.
     </div>
     %end
@@ -128,12 +128,12 @@
                     </div>
                     <div class="tags mb-2">
                         <span class="tag is-dark">{{spawn.type}}</span>
-                        <span class="tag is-light">MC {{spawn.minecraft_version}}</span>
+                        <span class="tag">MC {{spawn.minecraft_version}}</span>
                         %if spawn.type in ('FORGE', 'NEOFORGE'):
-                        <span class="tag is-light">{{spawn.type.title()}} {{spawn.forge_version}}</span>
+                        <span class="tag">{{spawn.type.title()}} {{spawn.forge_version}}</span>
                         %end
-                        <span class="tag is-light">Port {{spawn.port}}</span>
-                        <span class="tag {{'is-info is-light' if spawn.owner else 'is-light'}}">
+                        <span class="tag">Port {{spawn.port}}</span>
+                        <span class="tag {{'is-info is-light' if spawn.owner else ''}}">
                             {{spawn.owner if spawn.owner else 'unowned'}}
                         </span>
                     </div>
@@ -144,6 +144,12 @@
                 </div>
                 <footer class="card-footer">
                     <a class="card-footer-item" href="/spawn/{{spawn.name}}">Manage</a>
+                    %if not spawn.owner and user:
+                    <form class="card-footer-item" action="/spawn/{{spawn.name}}/claim" method="post">
+                        <input type="hidden" name="redirect" value="/">
+                        <button type="submit" class="button is-link is-small">Claim</button>
+                    </form>
+                    %end
                     %if can_manage.get(spawn.name):
                         %if status == 'running':
                     <form class="card-footer-item quick-action" action="/spawn/{{spawn.name}}/stop" method="post" data-action="stopping">

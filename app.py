@@ -347,6 +347,28 @@ def stop_spawn(name):
     spawn.stop()
     redirect(local_redirect_target(f"/spawn/{name}"))
 
+@post('/spawn/<name>/claim')
+def claim_spawn(name):
+    spawn = spawner.spawns.get(name)
+    if spawn is None:
+        abort(404, f"Unknown server '{name}'")
+    user = current_user()
+    if user is None:
+        redirect(f"/login?next={quote(f'/spawn/{name}')}")
+    redirect_to = local_redirect_target(f"/spawn/{name}")
+    with _capacity_lock:
+        if spawn.owner:
+            redirect(f"{redirect_to}?error={quote(f'This server is already owned by {spawn.owner}.')}")
+        spawn.refreshContainerInformation()
+        if spawn.get_status() in OCCUPIED_STATUSES:
+            # A running unowned server occupies the shared anonymous egg; once
+            # claimed it occupies one of the new owner's eggs instead
+            capacity_ok, egg_error = check_egg_capacity(user['name'])
+            if not capacity_ok:
+                redirect(f"{redirect_to}?error={quote(f'Claiming this running server needs a free egg. {egg_error}')}")
+        spawn.set_owner(user['name'])
+    redirect(redirect_to)
+
 @post('/spawn/<name>/delete')
 @require_spawn_permission
 def delete_spawn(name):
