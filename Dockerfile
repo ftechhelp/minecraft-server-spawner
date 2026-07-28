@@ -28,6 +28,9 @@ WORKDIR /app
 ENV PYTHONUNBUFFERED=1
 ENV DOCKER_HOST=unix:///var/run/docker.sock
 ENV TZ=America/Vancouver
+# docker:dind starts its own Tini below the shell command. Register it as a
+# subreaper so orphaned containerd helpers are collected even in that layer.
+ENV TINI_SUBREAPER=1
 
 # Create a directory for spawn data
 RUN mkdir -p /app/spawns

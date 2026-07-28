@@ -83,7 +83,8 @@ def answer_docs_question(question: str, docs_text: str) -> str:
 
 class LogAnalyzer:
     def analyze(self, spawn) -> dict:
-        logs = (spawn.get_logs() or "").strip()
+        # Analysis only needs recent context, not an ever-growing full log.
+        logs = (spawn.get_logs(tail=500, max_chars=512 * 1024) or "").strip()
         if not logs or logs == "No logs available.":
             raise LogAnalysisError("No logs are available to analyze for this spawn.")
 

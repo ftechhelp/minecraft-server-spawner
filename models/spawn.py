@@ -41,6 +41,7 @@ class Spawn:
         self.minecraft_version: str = minecraft_version
         self.forge_version: str = forge_version
         self.server_properties: str = ""
+        self.logs: str = ""
         self.docker_compose_file: str = os.path.join(self.directory, "docker-compose.yml")
         self.mods_dir: str = os.path.join(self.directory, "data", "mods")
         self.mod_uploads_dir: str = os.path.join(self.directory, ".mod_upload_batches")
@@ -232,9 +233,21 @@ class Spawn:
 
         return max(backup_paths, key=os.path.getmtime)
     
-    def get_logs(self) -> str:
-        self.__updateLogs()
-        return self.logs
+    def get_logs(self, tail: int = None, max_chars: int = None) -> str:
+        """Return container logs, optionally limited to a recent tail and size.
+
+        The live log view polls this method repeatedly, so callers that render
+        logs in a browser should always supply both limits.  The full history
+        remains available to the dedicated log-download page on demand.
+        """
+        self.__updateLogs(tail=tail)
+        logs = self.logs
+
+        if max_chars is not None and len(logs) > max_chars:
+            omitted = len(logs) - max_chars
+            logs = f"[Showing the final {max_chars:,} characters; {omitted:,} earlier characters omitted.]\n{logs[-max_chars:]}"
+
+        return logs
     
     def refreshContainerInformation(self) -> None:
         self.__updateContainerInformation()
@@ -576,8 +589,6 @@ class Spawn:
             self.container: Container = docker.container.inspect(self.name)
         except:
             self.container = None
-        
-        self.__updateLogs(20)
 
     def __updateLogs(self, tail: int = None) -> None:
         try:

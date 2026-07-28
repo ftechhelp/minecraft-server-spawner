@@ -91,8 +91,10 @@
         $(document).on('click', '#deleteAllModsConfirmModal .modal-background, #deleteAllModsConfirmModal .delete', function() {
             $('#deleteAllModsConfirmModal').removeClass('is-active');
         });
-        let streamInterval = null;
+        const LOG_REFRESH_INTERVAL_MS = 5000;
+        let streamTimer = null;
         let isStreaming = false;
+        let logRequestInFlight = false;
 
         // Scroll logs to bottom on load
         function scrollLogsToBottom() {
@@ -104,12 +106,51 @@
 
         // Fetch and update logs
         function refreshLogs() {
-            $.get(window.location.pathname + '/logs/content', function(data) {
-                $('#logsContent').text(data);
-                scrollLogsToBottom();
-            }).fail(function() {
-                console.error('Failed to fetch logs');
-            });
+            if (logRequestInFlight) {
+                return $.Deferred().resolve().promise();
+            }
+
+            logRequestInFlight = true;
+            return $.get(window.location.pathname + '/logs/content')
+                .done(function(data) {
+                    $('#logsContent').text(data);
+                    scrollLogsToBottom();
+                })
+                .fail(function() {
+                    console.error('Failed to fetch logs');
+                })
+                .always(function() {
+                    logRequestInFlight = false;
+                });
+        }
+
+        function scheduleNextLogRefresh() {
+            if (!isStreaming) {
+                return;
+            }
+
+            streamTimer = window.setTimeout(function() {
+                refreshLogs().always(scheduleNextLogRefresh);
+            }, LOG_REFRESH_INTERVAL_MS);
+        }
+
+        function startLogStreaming() {
+            isStreaming = true;
+            const $streamButton = $('#streamButton');
+            $streamButton.removeClass('is-outlined is-info').addClass('is-success');
+            $streamButton.html('<span class="icon"><i class="fas fa-broadcast-tower"></i></span><span>Streaming</span>');
+            refreshLogs().always(scheduleNextLogRefresh);
+        }
+
+        function stopLogStreaming() {
+            isStreaming = false;
+            const $streamButton = $('#streamButton');
+            $streamButton.removeClass('is-success').addClass('is-outlined is-info');
+            $streamButton.html('<span class="icon"><i class="fas fa-broadcast-tower"></i></span><span>Stream</span>');
+            if (streamTimer) {
+                clearTimeout(streamTimer);
+                streamTimer = null;
+            }
         }
 
         function openAnalysisModal(title, bodyHtml, articleClass = 'is-info') {
@@ -376,30 +417,18 @@
 
         // Toggle streaming
         function toggleStreaming() {
-            isStreaming = !isStreaming;
-            const $streamButton = $('#streamButton');
-            
             if (isStreaming) {
-                $streamButton.removeClass('is-outlined is-info').addClass('is-success');
-                $streamButton.html('<span class="icon"><i class="fas fa-broadcast-tower"></i></span><span>Streaming</span>');
-                streamInterval = setInterval(refreshLogs, 2000); // Refresh every 2 seconds
+                stopLogStreaming();
             } else {
-                $streamButton.removeClass('is-success').addClass('is-outlined is-info');
-                $streamButton.html('<span class="icon"><i class="fas fa-broadcast-tower"></i></span><span>Stream</span>');
-                if (streamInterval) {
-                    clearInterval(streamInterval);
-                    streamInterval = null;
-                }
+                startLogStreaming();
             }
         }
 
         $('#streamButton').click(toggleStreaming);
 
-        $('#refreshLogButton').click(() => 
-        {
-            $('#refreshLogButton').toggleClass('is-loading');
-            refreshLogs();
-            setTimeout(() => $('#refreshLogButton').removeClass('is-loading'), 1000);
+        $('#refreshLogButton').click(() => {
+            $('#refreshLogButton').addClass('is-loading');
+            refreshLogs().always(() => $('#refreshLogButton').removeClass('is-loading'));
         });
 
         $('#closeLogAnalysisModal, #dismissLogAnalysisModal').click(closeAnalysisModal);
@@ -408,8 +437,9 @@
         // Scroll to bottom on initial load
         scrollLogsToBottom();
 
-        // Enable streaming by default
-        toggleStreaming();
+        // Streaming is opt-in. It is intentionally not started on page load:
+        // logs can be large and must not make the rest of the panel sluggish.
+        window.addEventListener('beforeunload', stopLogStreaming);
 
         $('#modsSyncButton').click(() => 
         {

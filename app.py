@@ -500,13 +500,19 @@ def refresh_spawn(name):
 @get('/spawn/<name>/logs')
 def download_logs(name):
     spawn = spawner.spawns[name]
-    return render_template('./templates/spawn_logs', logs=spawn.get_logs())
+    # This is an explicit, infrequent request for the complete log history.
+    return render_template('./templates/spawn_logs', logs=spawn.get_logs(tail=None))
 
 @get('/spawn/<name>/logs/content')
 def get_logs_content(name):
     spawn = spawner.spawns[name]
     spawn.refreshContainerInformation()
-    return spawn.get_logs()
+    # The detail page may poll this endpoint. Keep the response small enough
+    # that a large, long-running server log cannot stall the browser or occupy
+    # every waitress worker.
+    response.content_type = 'text/plain; charset=UTF-8'
+    response.set_header('Cache-Control', 'no-store')
+    return spawn.get_logs(tail=500, max_chars=512 * 1024)
 
 @post('/spawn/<name>/logs/analyze')
 @require_spawn_permission
