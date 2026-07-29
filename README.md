@@ -171,7 +171,7 @@ The connection address shown on each spawn page uses `SERVER_CONNECTION_HOST` pl
 
 ### Notes and operational caveats
 
-- On startup, the app recreates loaded spawns once so their compose definitions use the correct absolute data paths.
+- On startup, the app loads existing spawns but does not start them. Use the panel to start servers; this ensures egg capacity is enforced.
 - Player counts are only available when the Minecraft server responds to status queries.
 - Updating `server.properties` triggers a restart flow.
 - Replacing all mods is faster than before because it avoids deleting old mods one by one and avoids a full rebuild-oriented compose recreate when only the mod files changed.

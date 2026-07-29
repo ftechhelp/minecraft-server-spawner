@@ -154,7 +154,6 @@ bottle.LocalRequest.MEMFILE_MAX = UPLOAD_MEMFILE_MAX
 
 spawner = Spawner()
 spawner.loadSpawns()
-spawner.ensure_all_spawns_up()
 
 # Start backup scheduler
 backup_scheduler.start(spawner)

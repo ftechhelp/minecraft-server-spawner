@@ -231,31 +231,3 @@ class Spawner:
                     print(f"No docker-compose.yml file found in '{spawn_path}'. Skipping spawn.")
             else:
                 print(f"'{spawn_path}' is not a directory. Skipping spawn.")
-
-    def ensure_all_spawns_up(self):
-        """Bring every known spawn up at startup without bouncing running ones.
-
-        The inner dind daemon stores its state on an anonymous volume, so
-        recreating the panel container loses all Minecraft containers. A
-        non-forced compose up is a no-op for running servers, starts stopped
-        ones, and recreates them from the persisted spawn definitions when the
-        inner daemon state was wiped.
-        """
-        try:
-            if not self.spawns:
-                self.loadSpawns()
-            for name, spawn in self.spawns.items():
-                try:
-                    print(f"Ensuring spawn '{name}' is up at startup...")
-                    self.create_or_modify_spawn(
-                        name=spawn.name,
-                        new_port=spawn.port,
-                        new_type=spawn.type,
-                        new_minecraftVersion=spawn.minecraft_version,
-                        new_forgeVersion=spawn.forge_version,
-                        force_recreate=False,
-                    )
-                except Exception as e:
-                    print(f"Failed to bring up spawn '{name}': {str(e)}")
-        except Exception as e:
-            print(f"Startup ensure-up step encountered an error: {str(e)}")
