@@ -18,8 +18,9 @@ docker compose down --remove-orphans && docker compose up --build
 - No test suite exists. Verify changes manually or with `python3 -m py_compile <file>`.
 - **Always rebuild after changes**: Run `docker compose down --remove-orphans && docker compose up --build` after making changes to test them. The app runs inside Docker, so code changes require a rebuild to take effect.
 - **Container name conflicts**: If you get "container name already in use" errors, run `docker rm -f <container-name>` to force remove the conflicting container, then rebuild.
-- **Dev and prod side by side**: Compose targets containers by project name, which defaults to the directory basename — identical for the dev and prod checkouts. `COMPOSE_PROJECT_NAME` must be set in `.env` (`minecraft-spawner-dev` in dev, `minecraft-spawner` in prod), otherwise `docker compose down` in one checkout tears down the other's container.
-- **Service name is `panel`, on purpose**: compose publishes the service name as a DNS alias on the shared external `private`/`public` networks. A service named `minecraft-spawner` collided with prod's container name and the reverse proxy round-robined prod traffic to the dev panel. The proxy must route by `CONTAINER_NAME` (unique per env), never by the service name.
+- **Dev and prod side by side**: Compose targets containers by project name, which defaults to the directory basename — identical for the dev and prod checkouts. The dev project name is pinned by `name: minecraft-server-spawner-dev` in `docker-compose.yml`, otherwise `docker compose down` in one checkout tears down the other's container. Never set `COMPOSE_PROJECT_NAME` in `.env`: it overrides `name:`, fails murphy-deploy's FR-004 check, and murphy loads `.env` for production deploys too.
+- **Service name is `panel`, on purpose**: compose publishes the service name as a DNS alias on the shared external `private`/`public` networks. A service named `minecraft-spawner` collided with prod's container name and the reverse proxy round-robined prod traffic to the dev panel. The proxy must route by container name (unique per env), never by the service name.
+- **Deployment is via `murphy-deploy`** (`murphy-deploy inspect minecraft-server-spawner`). `.murphy-deploy.toml` pins `[proxy].port = 8888` because the Minecraft port range makes the web port ambiguous; the compose healthcheck probes `/healthz` (cheap — `/` reloads spawns and queries Docker).
 ## Key Files
 
 - `app.py` - Bottle routes and request handling
@@ -38,7 +39,6 @@ Set in `.env` (copy from `.env.example`):
 - `IS_TEST` - Set to `true` to show "TEST SITE" banner in UI (default: `false`)
 - `WEB_PORT` - Host port for the web UI (default: `8888`)
 - `MC_PORT_START` / `MC_PORT_END` - Host port range for Minecraft servers (default: `25565`-`25665`)
-- `CONTAINER_NAME` - Docker container name (default: `minecraft-spawner`)
 - `ADMIN_USERNAME` / `ADMIN_PASSWORD` - Seed the first admin account, only when no users db exists yet
 - `COOKIE_SECRET` - Session cookie signing secret; blank = auto-generated and persisted in `panel_data/`
 

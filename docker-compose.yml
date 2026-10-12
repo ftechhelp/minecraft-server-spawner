@@ -13,6 +13,14 @@ services:
     ports:
       - "${WEB_PORT:-8888}:8888"
       - "${MC_PORT_START:-25565}-${MC_PORT_END:-25665}:25565-25665"
+    # Probe /healthz, not /: the index reloads every spawn and queries Docker.
+    # start_period covers the up-to-60s wait for the inner dockerd at boot.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import http.client; c = http.client.HTTPConnection('127.0.0.1', 8888, timeout=4); c.request('GET', '/healthz'); r = c.getresponse(); assert r.status == 200, r.status"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
     volumes:
       - ./spawns:/app/spawns
       - ./backups:/app/backups

@@ -1,0 +1,4 @@
+# murphy-deploy project profile. The panel also publishes the Minecraft port
+# range (25565-25665), so murphy cannot infer which port is the web UI.
+[proxy]
+port = 8888

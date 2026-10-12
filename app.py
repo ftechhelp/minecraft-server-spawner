@@ -185,6 +185,12 @@ def index():
     return render_index()
 
 
+@get('/healthz')
+def healthz():
+    # Container healthcheck: no disk or Docker access, just "the server answers".
+    return 'ok'
+
+
 @get('/login')
 def login_page():
     if current_user():
