@@ -25,21 +25,24 @@ services:
       - ./spawns:/app/spawns
       - ./backups:/app/backups
       - ./panel_data:/app/panel_data
+    # Map form, not "- KEY=value": murphy-deploy reads secret references
+    # (${ADMIN_PASSWORD:-} etc.) from the uninterpolated config as a map, and
+    # its output redaction corrupts list-form "PASSWORD=..." entries.
     environment:
-      - SPAWNS_DIR=/app/spawns
-      - ARCHIVED_BACKUPS_DIR=/app/backups
-      - PANEL_DATA_DIR=/app/panel_data
-      - ADMIN_USERNAME=${ADMIN_USERNAME:-}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-}
-      - COOKIE_SECRET=${COOKIE_SECRET:-}
-      - WEB_PANEL_URL=${WEB_PANEL_URL:-http://localhost:8888}
-      - SERVER_CONNECTION_HOST=${SERVER_CONNECTION_HOST:-localhost}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - GEMINI_MODEL=gemini-3.1-flash-lite-preview
-      - IS_TEST=${IS_TEST:-false}
-      - PYTHONUNBUFFERED=1
-      - DOCKER_HOST=unix:///var/run/docker.sock
-      - TZ=America/Vancouver
+      SPAWNS_DIR: /app/spawns
+      ARCHIVED_BACKUPS_DIR: /app/backups
+      PANEL_DATA_DIR: /app/panel_data
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      COOKIE_SECRET: ${COOKIE_SECRET:-}
+      WEB_PANEL_URL: ${WEB_PANEL_URL:-http://localhost:8888}
+      SERVER_CONNECTION_HOST: ${SERVER_CONNECTION_HOST:-localhost}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: gemini-3.1-flash-lite-preview
+      IS_TEST: ${IS_TEST:-false}
+      PYTHONUNBUFFERED: "1"
+      DOCKER_HOST: unix:///var/run/docker.sock
+      TZ: America/Vancouver
     networks:
       - private
       - public
