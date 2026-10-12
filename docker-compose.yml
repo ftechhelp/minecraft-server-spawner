@@ -5,8 +5,8 @@ services:
   # prod traffic to the dev panel. Route proxies by container_name instead.
   panel:
     build: .
-    container_name: ${CONTAINER_NAME:-minecraft-spawner}
-    restart: unless-stopped
+    container_name: minecraft-server-spawner-dev
+    restart: no
     # Reap orphaned Docker helper processes from the nested daemon.
     init: true
     privileged: true
@@ -35,9 +35,10 @@ services:
     networks:
       - private
       - public
-
 networks:
   private:
     external: true
+    name: private
   public:
     external: true
+name: minecraft-server-spawner-dev
