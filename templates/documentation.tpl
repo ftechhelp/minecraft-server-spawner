@@ -72,11 +72,12 @@
             <section class="box">
                 <h2 class="title is-3">What this app does</h2>
                 <p>This panel lets you create, run, inspect, back up, restore, and delete Minecraft servers from a web interface. Each server is managed as its own Docker-based spawn with its own data folder, logs, mods folder, and backup history.</p>
-                <p>The app currently supports three server types:</p>
+                <p>The app currently supports four server types:</p>
                 <ul>
                     <li><strong>VANILLA</strong> for unmodded servers</li>
                     <li><strong>FORGE</strong> for modded Forge servers</li>
                     <li><strong>NEOFORGE</strong> for modded NeoForge servers (Minecraft 1.20.1+)</li>
+                    <li><strong>FABRIC</strong> for modded Fabric servers (most Fabric mods also need the Fabric API mod in the mods folder)</li>
                 </ul>
                 <p>From the UI you can create a server, start and stop it, recreate its container, edit <code>server.properties</code>, upload mods, send console commands, view logs, analyze logs, create backups, restore backups, and recover archived backups after a server has been deleted.</p>
             </section>
@@ -173,9 +174,9 @@
                 <ul>
                     <li><strong>Name</strong> - optional. If left blank, the app generates a random UUID-style name.</li>
                     <li><strong>Port</strong> - optional. If left blank, the app assigns the next available port in the allowed range.</li>
-                    <li><strong>Type</strong> - choose <strong>FORGE</strong>, <strong>NEOFORGE</strong>, or <strong>VANILLA</strong>.</li>
+                    <li><strong>Type</strong> - choose <strong>FORGE</strong>, <strong>NEOFORGE</strong>, <strong>FABRIC</strong>, or <strong>VANILLA</strong>.</li>
                     <li><strong>Minecraft version</strong> - accepts <code>LATEST</code>, <code>X.Y</code>, or <code>X.Y.Z</code>.</li>
-                    <li><strong>Forge/NeoForge version</strong> - accepts <code>LATEST</code>, <code>X.Y.Z</code>, or <code>X.Y.Z.W</code> for Forge and NeoForge servers. NeoForge also accepts <code>beta</code>.</li>
+                    <li><strong>Forge/NeoForge/Fabric loader version</strong> - accepts <code>LATEST</code>, <code>X.Y.Z</code>, or <code>X.Y.Z.W</code> for Forge and NeoForge servers. NeoForge also accepts <code>beta</code>. Fabric accepts <code>LATEST</code> or a Fabric loader version in <code>X.Y.Z</code> format (e.g. <code>0.16.10</code>). Ignored for VANILLA.</li>
                 </ul>
 
                 <h3 class="title is-5">Validation rules</h3>
@@ -187,7 +188,7 @@
                     <li>Ports must be between <code>25565</code> and <code>25665</code>.</li>
                     <li>Ports already used by another spawn are blocked.</li>
                     <li>If no free port remains in the allowed range, server creation fails.</li>
-                    <li>Only <strong>FORGE</strong>, <strong>NEOFORGE</strong>, and <strong>VANILLA</strong> are accepted as server types.</li>
+                    <li>Only <strong>FORGE</strong>, <strong>NEOFORGE</strong>, <strong>FABRIC</strong>, and <strong>VANILLA</strong> are accepted as server types.</li>
                 </ul>
 
                 <h3 class="title is-5">Server cards</h3>
@@ -215,9 +216,9 @@
                     <li><strong>Port</strong> - the external game port players should use.</li>
                     <li><strong>Players Online</strong> - shown when the server responds to status queries.</li>
                     <li><strong>Connect</strong> - the game address plus a copy button.</li>
-                    <li><strong>Type</strong> - <code>FORGE</code>, <code>NEOFORGE</code>, or <code>VANILLA</code>.</li>
+                    <li><strong>Type</strong> - <code>FORGE</code>, <code>NEOFORGE</code>, <code>FABRIC</code>, or <code>VANILLA</code>.</li>
                     <li><strong>MC Version</strong> - the configured Minecraft version.</li>
-                    <li><strong>Forge / NeoForge</strong> - the configured mod loader version (label adapts to the server type).</li>
+                    <li><strong>Forge / NeoForge / Fabric Loader</strong> - the configured mod loader version (label adapts to the server type; hidden for VANILLA).</li>
                     <li><strong>Loaded Mods</strong> - number of files currently in the mods folder.</li>
                     <li><strong>Pending Del</strong> - appears when one or more mods were deleted from disk but the server has not yet been restarted to fully apply the change.</li>
                 </ul>
@@ -277,7 +278,8 @@
 
             <section class="box">
                 <h2 class="title is-3">Mods management</h2>
-                <p>The mods section is available on every spawn page. It works best for Forge-oriented workflows.</p>
+                <p>The mods section is available on every spawn page. It works the same for Forge, NeoForge, and Fabric servers: each loads <code>.jar</code> files from the server's mods folder.</p>
+                <p><strong>Fabric servers:</strong> most Fabric mods depend on the <strong>Fabric API</strong> mod. The panel does not install it for you, so upload the <code>fabric-api</code> jar that matches your Minecraft version along with your other mods. Fabric mods are not compatible with Forge or NeoForge, and vice versa.</p>
 
                 <h3 class="title is-5">What you can do</h3>
                 <ul>
@@ -391,7 +393,7 @@
                 <ul>
                     <li>When you delete a spawn, the app tries to archive the latest available backup first.</li>
                     <li>If a latest backup exists, it is copied into the root archived backups folder.</li>
-                    <li>Metadata is saved with the archived backup, including source server, server type, Minecraft version, and Forge version.</li>
+                    <li>Metadata is saved with the archived backup, including source server, server type, Minecraft version, and mod loader version.</li>
                 </ul>
 
                 <h3 class="title is-5">What the archived backups table shows</h3>
@@ -400,7 +402,7 @@
                     <li>source server</li>
                     <li>server type</li>
                     <li>Minecraft version</li>
-                    <li>Forge version</li>
+                    <li>mod loader version</li>
                     <li>creation timestamp</li>
                     <li>file size</li>
                 </ul>
@@ -528,7 +530,7 @@
                 <ol>
                     <li>Check the logs for whitelist, authentication, mod mismatch, or startup errors.</li>
                     <li>Make sure the players are using a compatible client version.</li>
-                    <li>For Forge servers, make sure players have the matching mod set.</li>
+                    <li>For modded servers (Forge, NeoForge, Fabric), make sure players have the matching mod loader and mod set.</li>
                     <li>Copy the address from the spawn page instead of typing it manually.</li>
                 </ol>
 
@@ -536,7 +538,7 @@
                 <ol>
                     <li>Read the latest logs.</li>
                     <li>Use <strong>Analyze</strong> if Gemini is configured.</li>
-                    <li>Check for Minecraft version and Forge version mismatch.</li>
+                    <li>Check for a mismatch between the Minecraft version and the mod loader version.</li>
                     <li>If mods were recently added, suspect dependency issues or incompatible versions first.</li>
                     <li>If needed, restore a known-good backup.</li>
                     <li>Try <strong>Re-create</strong> after correcting the configuration.</li>
@@ -546,7 +548,8 @@
                 <ol>
                     <li>Check the logs for missing dependencies, duplicate mods, or wrong game version messages.</li>
                     <li>Verify each uploaded mod is a <code>.jar</code> file.</li>
-                    <li>Verify the modpack matches the selected Minecraft version and Forge version.</li>
+                    <li>Verify the modpack matches the selected Minecraft version and mod loader (Forge, NeoForge, or Fabric).</li>
+                    <li>On Fabric servers, check that the Fabric API jar is in the mods folder.</li>
                     <li>Remove the last added mods or restore a backup from before the change.</li>
                 </ol>
 
@@ -619,7 +622,7 @@
                 <ul>
                     <li>Create a manual backup before changing mods, properties, or world-critical settings.</li>
                     <li>After deleting mods, restart or recreate the server before assuming the change is active.</li>
-                    <li>Keep Forge, Minecraft, and mod versions aligned.</li>
+                    <li>Keep the mod loader, Minecraft, and mod versions aligned.</li>
                     <li>Use archived backups for long-term recovery after deleting old servers.</li>
                     <li>Use the logs first whenever a server behaves unexpectedly.</li>
                 </ul>

@@ -8,7 +8,7 @@ import os
 from typing import Tuple, Optional
 
 
-ALLOWED_SERVER_TYPES = {"FORGE", "NEOFORGE", "VANILLA"}
+ALLOWED_SERVER_TYPES = {"FORGE", "NEOFORGE", "FABRIC", "VANILLA"}
 
 
 def validate_port(port: str) -> Tuple[bool, Optional[int], str]:
@@ -129,7 +129,7 @@ def validate_minecraft_version(version: str) -> Tuple[bool, str, str]:
 
 def validate_forge_version(version: str, server_type: str) -> Tuple[bool, str, str]:
     """
-    Validates Forge/NeoForge version values based on selected server type.
+    Validates Forge/NeoForge/Fabric loader version values based on selected server type.
     """
     version = (version or "LATEST").strip() or "LATEST"
     normalized_type = (server_type or "FORGE").strip().upper() or "FORGE"
@@ -145,6 +145,11 @@ def validate_forge_version(version: str, server_type: str) -> Tuple[bool, str, s
             return True, "beta", ""
         if not re.match(r'^\d+\.\d+\.\d+(?:\.\d+)?$', version):
             return False, "", "NeoForge version must be in format X.Y.Z or X.Y.Z.W (e.g., 47.1.79), 'LATEST', or 'beta'"
+        return True, version, ""
+
+    if normalized_type == "FABRIC":
+        if not re.match(r'^\d+\.\d+\.\d+$', version):
+            return False, "", "Fabric loader version must be in format X.Y.Z (e.g., 0.16.10) or 'LATEST'"
         return True, version, ""
 
     if not re.match(r'^\d+\.\d+\.\d+(?:\.\d+)?$', version):

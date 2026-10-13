@@ -47,6 +47,7 @@
                                 <select name="type">
                                     <option {{'selected' if create_form.get('type', 'FORGE') == 'FORGE' else ''}}>FORGE</option>
                                     <option {{'selected' if create_form.get('type', 'FORGE') == 'NEOFORGE' else ''}}>NEOFORGE</option>
+                                    <option {{'selected' if create_form.get('type', 'FORGE') == 'FABRIC' else ''}}>FABRIC</option>
                                     <option {{'selected' if create_form.get('type', 'FORGE') == 'VANILLA' else ''}}>VANILLA</option>
                                 </select>
                             </div>
@@ -59,9 +60,9 @@
                         </div>
                     </div>
                     <div class="field">
-                        <label class="label">Forge/NeoForge Version</label>
+                        <label class="label">Forge/NeoForge/Fabric Loader Version</label>
                         <div class="control">
-                            <input class="input is-link" type="text" name="forge_version" placeholder="Forge/NeoForge Version (LATEST)" value="{{create_form.get('forge_version', '')}}">
+                            <input class="input is-link" type="text" name="forge_version" placeholder="Mod Loader Version (LATEST)" value="{{create_form.get('forge_version', '')}}">
                         </div>
                     </div>
                 </section>
@@ -129,7 +130,7 @@
                     <div class="tags mb-2">
                         <span class="tag is-dark">{{spawn.type}}</span>
                         <span class="tag">MC {{spawn.minecraft_version}}</span>
-                        %if spawn.type in ('FORGE', 'NEOFORGE'):
+                        %if spawn.type in ('FORGE', 'NEOFORGE', 'FABRIC'):
                         <span class="tag">{{spawn.type.title()}} {{spawn.forge_version}}</span>
                         %end
                         <span class="tag">Port {{spawn.port}}</span>

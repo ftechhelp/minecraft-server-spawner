@@ -759,6 +759,11 @@
                                 <td><strong>Forge:</strong></td>
                                 <td>{{spawn.forge_version}}</td>
                             </tr>
+                            %elif spawn.type == 'FABRIC':
+                            <tr>
+                                <td><strong>Fabric Loader:</strong></td>
+                                <td>{{spawn.forge_version}}</td>
+                            </tr>
                             %end
                             <tr>
                                 <td><strong>Loaded Mods:</strong></td>

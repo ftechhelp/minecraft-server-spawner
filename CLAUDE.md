@@ -34,7 +34,7 @@ docker rm -f <container-name>
 
 **Spawn lifecycle**: each server is a directory under `spawns/<name>/` containing `docker-compose.yml` (generated, the source of truth for type/version/port), `data/` (world, mods, server.properties), and `backups/`. Deleting a spawn archives its latest backup into `backups/` (repo root, `ARCHIVED_BACKUPS_DIR`) with a `.json` metadata sidecar used for restore. **Never commit or hand-edit `spawns/` or `backups/` — they hold live server data.**
 
-**Supporting utils**: `utils/validators.py` (`ALLOWED_SERVER_TYPES` = FORGE, NEOFORGE, VANILLA; port/name/username/version validation), `utils/backup_scheduler.py` (daily backups, timezone hardcoded to `America/Vancouver`), `utils/log_analyzer.py` (Gemini API via raw urllib: log analysis + docs Q&A), `utils/users.py` (accounts and auth — see below).
+**Supporting utils**: `utils/validators.py` (`ALLOWED_SERVER_TYPES` = FORGE, NEOFORGE, FABRIC, VANILLA; port/name/username/version validation), `utils/backup_scheduler.py` (daily backups, timezone hardcoded to `America/Vancouver`), `utils/log_analyzer.py` (Gemini API via raw urllib: log analysis + docs Q&A), `utils/users.py` (accounts and auth — see below).
 
 **Auth and eggs**: accounts live in `panel_data/users.json` (volume-mounted; all access goes through `utils/users.py` under its module lock — never touch the file elsewhere). Passwords are stdlib scrypt; sessions are Bottle signed cookies (secret from `COOKIE_SECRET` env or auto-persisted at `panel_data/.cookie_secret`, so logins survive rebuilds). The first admin is seeded from `ADMIN_USERNAME`/`ADMIN_PASSWORD` only when `users.json` doesn't exist. New accounts (including the seeded admin) carry `must_change_password`; a `before_request` hook in `app.py` locks flagged users to `/password` (and `/logout`) until they set their own password. Each spawn has a `.owner` JSON sidecar (absent = unowned); it's read in `Spawn.__init__`, so `loadSpawns()` preserves ownership — only POST /spawn, archived restore, and admin user-deletion write it. Eggs are capacity slots: a user's `eggs` balance = max concurrently *running* servers they own; anonymous visitors share one slot over unowned spawns. Enforcement lives in `check_egg_capacity()` in `app.py`, called under `_capacity_lock` (check + container start in one critical section) from create/start/recreate/archived-restore. Permissions: owned spawns manageable by owner + admins only (`require_spawn_permission` decorator on all mutating spawn routes); unowned spawns manageable by anyone; viewing is open to all.
 
@@ -43,9 +43,8 @@ docker rm -f <container-name>
 The `itzg/minecraft-server` image supports many types natively via `TYPE=` env var. To expose one:
 1. Add to `ALLOWED_SERVER_TYPES` in `utils/validators.py`; update `validate_forge_version()` for type-specific version formats
 2. Add `<option>` to the type dropdown in `templates/index.tpl`
-3. Set the correct version env var (e.g. `NEOFORGE_VERSION` vs `FORGE_VERSION`) in `utils/spawner.py` `create_or_modify_spawn()` and `models/spawn.py` `_sync_docker_compose_with_spawn_settings()`
-4. Parse it in `Spawner.loadSpawns()` — always by env key name, never by list index
-5. Show/hide version fields in `templates/spawn.tpl`; update `templates/documentation.tpl`
+3. Map the type to its loader-version env var (e.g. `NEOFORGE_VERSION`, `FABRIC_LOADER_VERSION`) in `LOADER_VERSION_ENV_KEYS` in `models/spawn.py`. Compose generation (`create_or_modify_spawn()`, `_sync_docker_compose_with_spawn_settings()`) and `Spawner.loadSpawns()` all resolve the key through `loader_version_env_key()`, so never hardcode it
+4. Show/hide version fields in `templates/spawn.tpl` and the card tag in `templates/index.tpl`; update `templates/documentation.tpl` and `README.md`
 
 ## Gotchas
 

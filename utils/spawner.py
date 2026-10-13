@@ -1,5 +1,5 @@
 import uuid
-from models.spawn import Spawn
+from models.spawn import Spawn, loader_version_env_key
 import yaml
 import os
 import json
@@ -40,7 +40,7 @@ class Spawner:
         docker_compose['services']['mc']['stdin_open'] = True
         docker_compose['services']['mc']['tty'] = True
 
-        version_env_key = "NEOFORGE_VERSION" if spawn.type == "NEOFORGE" else "FORGE_VERSION"
+        version_env_key = loader_version_env_key(spawn.type)
         docker_compose['services']['mc']['environment'] = [f"TYPE={spawn.type}"]
         docker_compose['services']['mc']['environment'] += [f"VERSION={spawn.minecraft_version}"]
         docker_compose['services']['mc']['environment'] += [f"{version_env_key}={spawn.forge_version}"]
@@ -217,7 +217,7 @@ class Spawner:
                             env_vars[key] = value
                         type = env_vars.get("TYPE", "FORGE")
                         minecraft_version = env_vars.get("VERSION", "LATEST")
-                        forge_version = env_vars.get("FORGE_VERSION") or env_vars.get("NEOFORGE_VERSION", "LATEST")
+                        forge_version = env_vars.get(loader_version_env_key(type)) or "LATEST"
 
                         spawn = Spawn(name, port, volume, type, minecraft_version, forge_version)
                         self.spawns[spawn.name] = spawn

@@ -123,7 +123,7 @@ class LogAnalyzer:
             f"Status: {spawn.get_status()}\n"
             f"Server type: {spawn.type}\n"
             f"Minecraft version: {spawn.minecraft_version}\n"
-            f"Forge version: {spawn.forge_version}\n\n"
+            f"Mod loader version: {spawn.forge_version}\n\n"
             "Recent logs:\n"
             f"{logs}"
         )

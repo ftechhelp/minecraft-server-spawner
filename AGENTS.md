@@ -50,15 +50,13 @@ Runtime vars in `docker-compose.yml`:
 
 ## Server Type Implementation
 
-When adding a new server type (e.g., NEOFORGE, FABRIC):
+Currently supported: FORGE, NEOFORGE, FABRIC, VANILLA. When adding a new server type:
 1. Add to `ALLOWED_SERVER_TYPES` in `utils/validators.py`
 2. Update `validate_forge_version()` to handle type-specific version formats
 3. Add `<option>` to the type dropdown in `templates/index.tpl`
-4. Update `utils/spawner.py` to set the correct Docker env var (e.g., `NEOFORGE_VERSION` vs `FORGE_VERSION`)
-5. Update `models/spawn.py` `_sync_docker_compose_with_spawn_settings()` for the same env var
-6. Update `utils/spawner.py` `loadSpawns()` to parse the env var by key name (not index)
-7. Update `templates/spawn.tpl` to show/hide version fields conditionally
-8. Update `templates/documentation.tpl`
+4. Map the type to its loader-version env var (e.g., `NEOFORGE_VERSION`, `FABRIC_LOADER_VERSION`) in `LOADER_VERSION_ENV_KEYS` in `models/spawn.py`. Compose generation (`utils/spawner.py` `create_or_modify_spawn()`, `models/spawn.py` `_sync_docker_compose_with_spawn_settings()`) and `loadSpawns()` all resolve it through `loader_version_env_key()` — never hardcode the key
+5. Update `templates/spawn.tpl` to show/hide version fields conditionally, and the card tag in `templates/index.tpl`
+6. Update `templates/documentation.tpl` and `README.md`
 
 The `itzg/minecraft-server` image supports many types natively via `TYPE=` env var.
 

@@ -9,13 +9,13 @@ The point of this project was to keep everything as light and simple as possible
 ## Features
 
 - Deploy multiple Minecraft server instances from one panel.
-- Supports both `VANILLA` and `FORGE` server types.
+- Supports `VANILLA`, `FORGE`, `NEOFORGE`, and `FABRIC` server types.
 - Create servers with validated names, validated versions, and automatic port selection when no port is provided.
 - Start, stop, recreate, and delete server instances from the UI.
 - View live status, current player counts, and server logs.
 - Send console commands directly to a running server.
 - Edit `server.properties` from the web interface and restart the server with the updated configuration.
-- Upload a single mod file or replace the full mods folder for Forge servers using a lightweight restart flow.
+- Upload a single mod file or replace the full mods folder for Forge, NeoForge, and Fabric servers using a lightweight restart flow.
 - Optimized bulk mod replacement for large uploads by staging files through smaller requests, then swapping the mods directory before a lightweight restart.
 - Delete all current mods in one action instead of removing them one by one.
 - Live single mod upload progress with percentage, transferred size, speed, and estimated time remaining.
@@ -120,9 +120,11 @@ Click **+ New Server** on the home page to create a spawn with:
 
 - `name` - optional; if blank the app generates a UUID-based name
 - `port` - optional; if blank the app assigns the next free port in `25565-25665`
-- `type` - `FORGE` or `VANILLA`
+- `type` - `FORGE`, `NEOFORGE`, `FABRIC`, or `VANILLA`
 - `minecraft_version` - accepts `LATEST`, `X.Y`, or `X.Y.Z`
-- `forge_version` - accepts `LATEST`, `X.Y.Z`, or `X.Y.Z.W` for Forge servers
+- `forge_version` - the mod loader version: accepts `LATEST`, `X.Y.Z`, or `X.Y.Z.W` for Forge and NeoForge (NeoForge also accepts `beta`), and `LATEST` or `X.Y.Z` for the Fabric loader (e.g. `0.16.10`); ignored for Vanilla
+
+Fabric servers run the Fabric loader only. Most Fabric mods also need the [Fabric API](https://modrinth.com/mod/fabric-api) mod, so upload the `fabric-api` jar for your Minecraft version along with your other mods.
 
 Validation currently prevents duplicate names, duplicate spawn directories, duplicate ports, invalid name characters, and invalid version formats.
 

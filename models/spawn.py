@@ -28,6 +28,19 @@ def _compose_dir(directory: str):
             os.chdir(previous_directory)
 
 
+# Env var the itzg image reads for each type's mod loader version. VANILLA has no
+# loader but has always been written with FORGE_VERSION=LATEST, so it uses the fallback.
+LOADER_VERSION_ENV_KEYS = {
+    "FORGE": "FORGE_VERSION",
+    "NEOFORGE": "NEOFORGE_VERSION",
+    "FABRIC": "FABRIC_LOADER_VERSION",
+}
+
+
+def loader_version_env_key(server_type: str) -> str:
+    return LOADER_VERSION_ENV_KEYS.get(server_type, "FORGE_VERSION")
+
+
 class Spawn:
 
 
@@ -422,7 +435,7 @@ class Spawn:
         docker_compose['services']['mc']['image'] = "itzg/minecraft-server"
         docker_compose['services']['mc']['stdin_open'] = True
         docker_compose['services']['mc']['tty'] = True
-        version_env_key = "NEOFORGE_VERSION" if self.type == "NEOFORGE" else "FORGE_VERSION"
+        version_env_key = loader_version_env_key(self.type)
         docker_compose['services']['mc']['environment'] = [
             f"TYPE={self.type}",
             f"VERSION={self.minecraft_version}",
